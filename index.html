@@ -1,0 +1,895 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mission Labor – Trennverfahren</title>
+<style>
+:root{--blue:#1F5F8B;--blue2:#2E75B6;--bluebg:#EAF1FA;--yellow:#FFD600;--ink:#1a1a1a;--mute:#5b6572;--ok:#2e7d32;--okbg:#e8f5e9;--bad:#c62828;--badbg:#fdecea;--bg:#f4f7fb;--card:#fff;--line:#d5dde8}
+*{box-sizing:border-box}
+html{color-scheme:light}
+body{margin:0;font-family:Calibri,"Segoe UI",system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.45}
+header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:3px solid var(--yellow);display:flex;align-items:center;gap:14px;padding:8px 16px;flex-wrap:wrap}
+.brand{color:var(--mute);font-size:15px}
+.ttl{font-weight:700;color:var(--blue);font-size:19px;flex:1;min-width:180px}
+.xp{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--mute)}
+.xpbar{width:110px;height:10px;background:#e4e9f0;border-radius:6px;overflow:hidden}
+.xpbar i{display:block;height:100%;background:var(--yellow);width:0;transition:width .5s}
+#map{display:flex;gap:6px;padding:12px 16px 4px;overflow-x:auto;max-width:980px;margin:0 auto}
+.node{flex:1 0 74px;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:0;cursor:pointer;font:inherit;color:var(--ink);padding:2px}
+.node .dot{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-size:24px;background:#fff;border:3px solid var(--line);transition:.2s}
+.node.open .dot{border-color:var(--blue2);box-shadow:0 0 0 4px #cfe1f4}
+.node.done .dot{background:var(--okbg);border-color:var(--ok)}
+.node.cur .dot{background:var(--bluebg)}
+.node.locked{cursor:not-allowed;opacity:.5}
+.node .lb{font-size:12.5px;text-align:center;line-height:1.15;color:var(--mute)}
+.node .st{font-size:13px;color:#d4a400;height:14px;letter-spacing:1px}
+main{max-width:980px;margin:0 auto;padding:8px 16px 60px}
+.card{background:var(--card);border-radius:14px;box-shadow:0 1px 4px rgba(20,50,90,.12);padding:18px 20px;margin:14px 0}
+h1{font-size:26px;color:var(--blue);margin:6px 0 2px}
+h2{font-size:20px;margin:0 0 8px;color:var(--blue)}
+h3{font-size:17px;margin:12px 0 4px}
+.sub{color:var(--mute);margin:0 0 6px}
+.badge{display:inline-block;background:var(--bluebg);color:var(--blue);border:1px solid var(--blue2);border-radius:20px;padding:2px 12px;font-size:14px;font-weight:700;margin-right:6px}
+.badge.y{background:#fff8c9;border-color:#e0b800;color:#6b5500}
+.info p{margin:6px 0}
+.info b,.term{color:var(--blue)}
+.key{border-left:5px solid var(--blue2);background:var(--bluebg);padding:8px 12px;border-radius:6px;margin:10px 0;font-weight:600}
+.foto{margin:10px 0;text-align:center;display:none}
+.foto img{max-width:100%;max-height:260px;border-radius:10px}
+.foto small{display:block;color:var(--mute)}
+canvas.sim{width:100%;height:auto;background:#fff;border:1px solid var(--line);border-radius:10px;display:block;touch-action:manipulation}
+.ctrl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+button.b{font:inherit;font-weight:700;border:0;border-radius:10px;padding:9px 16px;background:var(--blue);color:#fff;cursor:pointer;min-height:42px}
+button.b.sec{background:#fff;color:var(--blue);border:2px solid var(--blue2)}
+button.b.sel{background:var(--yellow);color:#222}
+button.b:disabled{opacity:.45;cursor:default}
+.ctrl label{font-weight:700;color:var(--mute)}
+input[type=range]{width:200px;max-width:100%;height:30px}
+.msg{min-height:26px;font-weight:600;color:var(--blue)}
+.msg.ok{color:var(--ok)}
+.task{border:2px solid var(--line);border-radius:12px;padding:12px 14px;margin:12px 0;background:#fff}
+.task.ok{border-color:#9ccc9f;background:#fbfefb}
+.task .q{font-weight:700;margin-bottom:8px}
+.task .nr{display:inline-block;width:26px;height:26px;border-radius:50%;background:var(--blue);color:#fff;text-align:center;line-height:26px;font-size:14px;margin-right:8px}
+.task.ok .nr{background:var(--ok)}
+.opts{display:grid;gap:8px}
+.opt{font:inherit;text-align:left;padding:10px 14px;border-radius:10px;border:2px solid var(--line);background:#fff;cursor:pointer;min-height:44px}
+.opt:hover:not(:disabled){border-color:var(--blue2);background:var(--bluebg)}
+.opt.ok{border-color:var(--ok);background:var(--okbg)}
+.opt.bad{border-color:var(--bad);background:var(--badbg);text-decoration:line-through;opacity:.75}
+.fb{margin-top:8px;font-size:15.5px}
+.fb.ok{color:var(--ok)}
+.fb.bad{color:var(--bad)}
+select{font:inherit;padding:6px 8px;border-radius:8px;border:2px solid var(--line);background:#fff;max-width:100%}
+select.ok{border-color:var(--ok);background:var(--okbg)}
+select.bad{border-color:var(--bad);background:var(--badbg)}
+.mrow{display:flex;gap:10px;align-items:center;margin:6px 0;flex-wrap:wrap}
+.mrow .l{flex:1 1 220px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0;min-height:44px;padding:6px;border-radius:10px}
+.chips.pool{background:#f1f4f8}
+.chips.seq{background:var(--bluebg);border:2px dashed var(--blue2)}
+.chip{font:inherit;padding:8px 12px;border-radius:20px;border:2px solid var(--blue2);background:#fff;cursor:pointer}
+.chip.bad{border-color:var(--bad);background:var(--badbg)}
+.chip.ok{border-color:var(--ok);background:var(--okbg)}
+.heft{position:relative;margin:14px 0;border-radius:10px;border:2px solid var(--blue2);background:#fff;overflow:hidden}
+.heft .hh{background:var(--blue);color:#fff;padding:6px 14px;font-weight:700}
+.heft .hb{padding:12px 14px;background-image:repeating-linear-gradient(transparent 0 27px,#dbe6f3 27px 28px);background-color:#fffffb}
+.heft.locked .hb{filter:blur(7px);user-select:none;pointer-events:none}
+.heft .lockmsg{position:absolute;inset:34px 0 0 0;display:none;place-items:center;font-weight:700;color:var(--blue);text-align:center;padding:10px}
+.heft.locked .lockmsg{display:grid}
+table.ht{border-collapse:collapse;width:100%;background:#fffffb;font-size:16px}
+table.ht th,table.ht td{border:1.5px solid #34495e;padding:6px 9px;vertical-align:top;text-align:left}
+table.ht th{background:#e6eef7}
+table.ht td small{color:var(--mute)}
+.sketch{margin:10px 0;text-align:center}
+.sketch svg{max-width:100%;height:auto;border:1px dashed #9db4cf;border-radius:8px;background:#fff}
+.sketch .cap{font-size:14px;color:var(--mute)}
+.done{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.banner{background:linear-gradient(90deg,#fff7bf,#fff);border:2px solid var(--yellow);border-radius:12px;padding:14px 18px;margin:14px 0;text-align:center}
+.banner .big{font-size:22px;font-weight:700;color:var(--blue)}
+.stars{color:#e0a800;font-size:26px;letter-spacing:3px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:14px;color:var(--mute);margin:6px 0}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.hint{font-size:14px;color:var(--mute)}
+footer{max-width:980px;margin:0 auto;padding:0 16px 30px;font-size:13px;color:var(--mute);display:flex;gap:14px;flex-wrap:wrap}
+footer a{color:var(--blue2);cursor:pointer}
+.steps li{margin:6px 0}
+.cards3{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.cards3 .c{border:2px solid var(--line);border-radius:12px;padding:10px;background:#fff}
+.cards3 svg{width:100%;height:auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (max-width:600px){body{font-size:16px}.card{padding:14px}}
+@media print{header,#map,footer,.noprint,.ctrl{display:none!important}body{background:#fff}.card{box-shadow:none;padding:0}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">Chemie | van Roye</div>
+  <div class="ttl">Mission Labor – Stoffgemische trennen</div>
+  <div class="xp"><span id="xpt">0 XP</span><div class="xpbar"><i id="xpb"></i></div></div>
+</header>
+<nav id="map" aria-label="Level"></nav>
+<main id="view"></main>
+<footer><span id="ver">Skript-App Trennverfahren · Stoffteilchenmodell · Klasse 8</span><a id="reset">Fortschritt zurücksetzen</a></footer>
+<script>
+"use strict";
+// ================= Hilfsfunktionen & Zustand =================
+const $ = (s, r = document) => r.querySelector(s);
+const el = (t, c, h) => { const e = document.createElement(t); if (c) e.className = c; if (h != null) e.innerHTML = h; return e; };
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const rnd = (a, b) => a + Math.random() * (b - a);
+const KEY = 'trennapp_v1';
+let S = { started: false, lv: {}, tk: {}, xp: 0 };
+try { const j = localStorage.getItem(KEY); if (j) S = Object.assign(S, JSON.parse(j)); } catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+const TEACHER = /lehrer/.test(location.search);
+const XPMAX = 400;
+let curLab = null;          // aktive Simulation (wird beim Levelwechsel beendet)
+
+function updateXP() {
+  $('#xpt').textContent = S.xp + ' XP';
+  $('#xpb').style.width = Math.min(100, S.xp / XPMAX * 100) + '%';
+}
+function levelOpen(n) {
+  if (TEACHER) return true;
+  if (n === 1) return S.started;
+  return !!(S.lv[n - 1] && S.lv[n - 1].done);
+}
+
+// ================= Karte =================
+function renderMap(cur) {
+  const m = $('#map'); m.innerHTML = '';
+  LEVELS.forEach(L => {
+    const open = levelOpen(L.id), done = S.lv[L.id] && S.lv[L.id].done;
+    const b = el('button', 'node ' + (done ? 'done ' : '') + (open ? 'open ' : 'locked ') + (cur === L.id ? 'cur' : ''));
+    const stars = done ? '★'.repeat(S.lv[L.id].stars) + '☆'.repeat(3 - S.lv[L.id].stars) : '';
+    b.innerHTML = `<span class="dot">${open ? L.icon : '🔒'}</span><span class="st">${stars}</span><span class="lb">${L.short}</span>`;
+    b.onclick = () => { if (open) show(L.id); };
+    m.append(b);
+  });
+  const hb = el('button', 'node ' + (cur === 'heft' ? 'cur ' : '') + (S.lv[5] && S.lv[5].done || TEACHER ? 'open' : 'locked'));
+  hb.innerHTML = `<span class="dot">${(S.lv[5] && S.lv[5].done) || TEACHER ? '📓' : '🔒'}</span><span class="st"></span><span class="lb">Meine Heftseite</span>`;
+  hb.onclick = () => { if ((S.lv[5] && S.lv[5].done) || TEACHER) show('heft'); };
+  m.append(hb);
+}
+
+// ================= Ansichten =================
+function show(id) {
+  if (curLab) { curLab.destroy(); curLab = null; }
+  const v = $('#view'); v.innerHTML = '';
+  renderMap(id);
+  if (id === 'start') viewStart(v);
+  else if (id === 'heft') viewHeft(v);
+  else viewLevel(v, LEVELS.find(l => l.id === id));
+  window.scrollTo({ top: 0 });
+}
+
+function viewStart(v) {
+  const c = el('div', 'card');
+  c.innerHTML = `<h1>Mission Labor</h1>
+  <p class="sub">Heute erarbeitest du dir selbst, wie man <b>Stoffgemische</b> in ihre <b>Reinstoffe</b> trennt.</p>
+  <p>Im Labor treffen verschiedene Proben ein – lauter Gemische. Dein Auftrag: Für jede Probe das richtige <b>Trennverfahren</b> finden.
+  In jedem Level <b>entdeckst</b> du ein Verfahren im Experiment, löst <b>Aufgaben</b> und schreibst dann einen <b>sauberen Heftaufschrieb</b>. Erst dann wird das nächste Level frei.</p>
+  <div class="key">Ein gutes Heft ist dein Ergebnis! Schreibe nur das ab, was im Kasten „In dein Heft“ steht – sauber, mit Lineal und mit Bleistift für Skizzen.</div>
+  <h2>Heft vorbereiten</h2>
+  <ol class="steps">
+    <li>Schreibe das Datum <b>20.11.2026</b> und die Überschrift <b>„Trennverfahren für Stoffgemische“</b>.</li>
+    <li>Schreibe den Merksatz ab (rahmen):
+      <div class="key">Zum Trennen von Stoffgemischen werden die sich unterscheidenden Eigenschaften der Reinstoffe genutzt.</div></li>
+    <li>Zeichne unter den Merksatz eine Tabelle mit <b>3 Spalten</b> und der Kopfzeile (Tipp: Heft quer legen, dann ist mehr Platz):
+      <table class="ht"><tr><th style="width:26%">Verfahren<br><small>(genutzte Eigenschaft)</small></th><th>So funktioniert es<br><small>(auch auf Teilchenebene)</small></th><th style="width:22%">Beispiel</th></tr></table>
+      Lass Platz: Du trägst nach jedem Level eine Zeile ein.</li>
+  </ol>
+  <label class="done"><input type="checkbox" id="ready" style="width:22px;height:22px"> <b>Mein Heft ist vorbereitet.</b></label>
+  <div class="done"><button class="b" id="go" disabled>Mission starten ▶</button></div>`;
+  v.append(c);
+  const chk = $('#ready', c), go = $('#go', c);
+  chk.onchange = () => go.disabled = !chk.checked;
+  if (S.started) { chk.checked = true; go.disabled = false; go.textContent = 'Weiter zu Level 1 ▶'; }
+  go.onclick = () => { S.started = true; save(); show(1); };
+}
+
+function viewLevel(v, L) {
+  const st = S.lv[L.id] || (S.lv[L.id] = {});
+  const head = el('div', 'card');
+  head.innerHTML = `<span class="badge">Level ${L.id <= 6 ? L.id : 'Bonus'}</span>${L.prop ? `<span class="badge y">Genutzte Eigenschaft: ${L.prop}</span>` : ''}
+  <h1>${L.icon} ${L.title}</h1>
+  <div class="info">${L.intro}</div>`;
+  if (L.foto) {
+    const f = el('div', 'foto'); const im = new Image(); im.alt = L.foto.cap; im.src = L.foto.src;
+    im.onload = () => f.style.display = 'block'; f.append(im, el('small', '', L.foto.cap)); head.append(f);
+  }
+  v.append(head);
+
+  // Labor
+  if (L.lab) {
+    const lc = el('div', 'card');
+    lc.innerHTML = `<h2>🔬 Entdecken</h2><p class="sub">${L.labIntro}</p>`;
+    const host = el('div'); lc.append(host); v.append(lc);
+    curLab = LABS[L.lab](host, {
+      success() { markLab(L); }
+    });
+  }
+  if (L.after) { const ac = el('div', 'card info'); ac.innerHTML = L.after; v.append(ac); }
+
+  // Aufgaben
+  const tc = el('div', 'card');
+  tc.innerHTML = `<h2>🧩 Aufgaben</h2><p class="sub">${L.tasks.length} Aufgaben – Fehler sind erlaubt, sie kosten nur Sterne.</p>`;
+  const tl = el('div'); tc.append(tl); v.append(tc);
+  L.tasks.forEach((t, i) => tl.append(buildTask(L, t, i)));
+
+  // Heft
+  const hc = el('div', 'card');
+  hc.innerHTML = `<h2>✏️ In dein Heft</h2>`;
+  const hf = el('div', 'heft locked');
+  hf.innerHTML = `<div class="hh">Heftaufschrieb – Level ${L.id <= 6 ? L.id : 'Bonus'}</div><div class="hb">${heftHTML(L)}</div>
+    <div class="lockmsg">🔒 Löse zuerst alle Aufgaben – dann erscheint dein Heftaufschrieb.</div>`;
+  hc.append(hf);
+  const dn = el('div', 'done');
+  dn.innerHTML = `<label><input type="checkbox" id="hck" style="width:22px;height:22px"> <b>Ich habe den Eintrag sauber ins Heft geschrieben${L.sketchesNote || ''}.</b></label>`;
+  const nb = el('button', 'b', st.done ? 'Weiter ▶' : 'Level abschließen ✔'); nb.disabled = true; dn.append(nb);
+  hc.append(dn); v.append(hc);
+  const ban = el('div'); v.append(ban);
+  const ck = $('#hck', dn);
+  const refresh = () => {
+    const ok = levelTasksDone(L);
+    hf.classList.toggle('locked', !ok);
+    ck.disabled = !ok; nb.disabled = !(ok && ck.checked);
+  };
+  ck.onchange = refresh;
+  if (st.done) { ck.checked = true; }
+  L._refresh = refresh; refresh();
+  nb.onclick = () => finishLevel(L, ban);
+  if (st.done) showBanner(L, ban, true);
+}
+
+function heftHTML(L) {
+  let h = L.heft.map(r => `<table class="ht"><tr><td style="width:26%"><b>${r.v}</b><br><small>${r.e}</small></td><td>${r.p}</td><td style="width:22%">${r.b}</td></tr></table>`).join('');
+  if (L.heftNote) h += `<p class="hint">${L.heftNote}</p>`;
+  (L.sketches || []).forEach(s => { h += `<div class="sketch">${SKETCH[s.id]()}<div class="cap">${s.cap}</div></div>`; });
+  return h;
+}
+function levelTasksDone(L) { return L.tasks.every((t, i) => S.tk[L.id + '.' + i] && S.tk[L.id + '.' + i].ok); }
+function markLab(L) {
+  const i = L.tasks.findIndex(t => t.t === 'lab');
+  if (i < 0) return;
+  const id = L.id + '.' + i;
+  if (S.tk[id] && S.tk[id].ok) return;
+  taskDone(L, i, 0, true);
+}
+
+function taskDone(L, i, mistakes, fromLab) {
+  const id = L.id + '.' + i;
+  S.tk[id] = { ok: true, m: mistakes };
+  S.xp += mistakes ? 5 : 10; save(); updateXP();
+  const box = document.querySelector(`[data-task="${id}"]`);
+  if (box) { box.classList.add('ok'); const f = box.querySelector('.fb'); if (fromLab && f) { f.className = 'fb ok'; f.innerHTML = '✔ Geschafft! ' + (L.tasks[i].ex || ''); } }
+  if (L._refresh) L._refresh();
+}
+function stars(L) {
+  let m = 0; L.tasks.forEach((t, i) => { const k = S.tk[L.id + '.' + i]; if (k) m += k.m || 0; });
+  return m <= 1 ? 3 : m <= 4 ? 2 : 1;
+}
+function finishLevel(L, ban) {
+  const st = S.lv[L.id];
+  if (!st.done) { st.done = true; st.stars = stars(L); S.xp += 20; save(); updateXP(); }
+  renderMap(L.id); showBanner(L, ban, false);
+}
+function showBanner(L, ban, quiet) {
+  const st = S.lv[L.id]; ban.innerHTML = '';
+  const b = el('div', 'banner');
+  const next = LEVELS.find(x => x.id === L.id + 1);
+  const toHeft = L.id === 6 && !next;
+  b.innerHTML = `<div class="big">${quiet ? 'Level geschafft' : '🎉 Level geschafft!'} – ${L.badge}</div><div class="stars">${'★'.repeat(st.stars)}${'☆'.repeat(3 - st.stars)}</div>`;
+  const nb = el('button', 'b');
+  if (L.id === 5) { b.append(el('p', '', 'Du kannst jetzt die <b>Mission</b> starten – und dir deine Heftseite ansehen.')); }
+  if (next) { nb.textContent = `Weiter zu: ${next.title} ▶`; nb.onclick = () => show(next.id); b.append(nb); }
+  ban.append(b); if (!quiet) b.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (L.id >= 6) {
+    const hb = el('button', 'b sec', '📓 Meine Heftseite ansehen'); hb.style.marginLeft = '8px'; hb.onclick = () => show('heft'); b.append(hb);
+  }
+}
+
+// ================= Heftseite =================
+function viewHeft(v) {
+  const c = el('div', 'card'); c.id = 'heftseite';
+  let rows = '', sk = '';
+  LEVELS.forEach(L => {
+    if (!(S.lv[L.id] && S.lv[L.id].done) && !TEACHER) return;
+    L.heft.forEach(r => rows += `<tr><td><b>${r.v}</b><br><small>${r.e}</small></td><td>${r.p}</td><td>${r.b}</td></tr>`);
+    (L.sketches || []).forEach(s => sk += `<div class="sketch">${SKETCH[s.id]()}<div class="cap">${s.cap}</div></div>`);
+  });
+  c.innerHTML = `<h1>📓 Heftseite: Trennverfahren für Stoffgemische</h1>
+  <p class="sub">20.11.2026 · Vergleiche mit deinem Heft. Fehlt etwas? Ergänze es jetzt.</p>
+  <div class="key">Zum Trennen von Stoffgemischen werden die sich unterscheidenden Eigenschaften der Reinstoffe genutzt.</div>
+  <table class="ht"><tr><th style="width:26%">Verfahren<br><small>(genutzte Eigenschaft)</small></th><th>So funktioniert es</th><th style="width:22%">Beispiel</th></tr>${rows}</table>
+  ${sk}
+  <div class="done noprint"><button class="b" onclick="window.print()">🖨 Drucken / Als PDF speichern</button></div>`;
+  v.append(c);
+}
+
+// ================= Aufgaben =================
+function buildTask(L, t, i) {
+  const id = L.id + '.' + i, solved = S.tk[id] && S.tk[id].ok;
+  const box = el('div', 'task' + (solved ? ' ok' : '')); box.dataset.task = id;
+  const q = el('div', 'q', `<span class="nr">${i + 1}</span>${t.q}`); box.append(q);
+  const fb = el('div', 'fb'); 
+  const body = el('div'); box.append(body, fb);
+  if (solved) { fb.className = 'fb ok'; fb.innerHTML = '✔ Gelöst. ' + (t.ex || ''); if (t.t !== 'lab') return box; }
+  if (t.t === 'lab') { if (!solved) { fb.innerHTML = '<span class="hint">Löse das Experiment oben – diese Aufgabe wird dann automatisch abgehakt.</span>'; } return box; }
+  let mistakes = 0, locked = false;
+  const wrong = () => { mistakes++; fb.className = 'fb bad'; fb.innerHTML = '✖ Noch nicht richtig. ' + (t.hint ? '💡 ' + t.hint : 'Versuche es noch einmal.'); };
+  const right = () => { locked = true; fb.className = 'fb ok'; fb.innerHTML = '✔ Richtig! ' + (t.ex || ''); taskDone(L, i, mistakes); };
+
+  if (t.t === 'mc') {
+    const list = el('div', 'opts'); body.append(list);
+    shuffle(t.o.map((o, k) => ({ o, k }))).forEach(({ o, k }) => {
+      const b = el('button', 'opt', o);
+      b.onclick = () => { if (locked) return; if (k === t.a) { b.classList.add('ok'); [...list.children].forEach(x => x.disabled = true); right(); } else { b.classList.add('bad'); b.disabled = true; wrong(); } };
+      list.append(b);
+    });
+  }
+  if (t.t === 'cloze') {
+    const p = el('p'); const sels = [];
+    t.parts.forEach(x => {
+      if (typeof x === 'string') p.append(document.createTextNode(x));
+      else { const s = el('select'); s.innerHTML = '<option value="-1">… wähle …</option>' + shuffle(x.o.map((o, k) => ({ o, k }))).map(y => `<option value="${y.k}">${y.o}</option>`).join(''); s._a = x.a; sels.push(s); p.append(s); }
+    });
+    body.append(p); const cb = el('button', 'b', 'Prüfen'); body.append(cb);
+    cb.onclick = () => { if (locked) return; let all = true; sels.forEach(s => { const ok = +s.value === s._a; s.className = ok ? 'ok' : 'bad'; if (!ok) all = false; }); if (all) { sels.forEach(s => s.disabled = true); cb.disabled = true; right(); } else wrong(); };
+  }
+  if (t.t === 'match') {
+    const sels = []; const rights = shuffle(t.opts || t.pairs.map(p => p[1]));
+    t.pairs.forEach(p => {
+      const r = el('div', 'mrow'); r.append(el('div', 'l', p[0]));
+      const s = el('select'); s.innerHTML = '<option value="">… wähle …</option>' + rights.map(o => `<option>${o}</option>`).join(''); s._a = p[1]; sels.push(s); r.append(s); body.append(r);
+    });
+    const cb = el('button', 'b', 'Prüfen'); body.append(cb);
+    cb.onclick = () => { if (locked) return; let all = true; sels.forEach(s => { const ok = s.value === s._a; s.className = ok ? 'ok' : 'bad'; if (!ok) all = false; }); if (all) { sels.forEach(s => s.disabled = true); cb.disabled = true; right(); } else wrong(); };
+  }
+  if (t.t === 'order') {
+    body.append(el('div', 'hint', 'Tippe die Schritte in der richtigen Reihenfolge an. Zum Entfernen erneut antippen.'));
+    const pool = el('div', 'chips pool'), seq = el('div', 'chips seq'); body.append(pool, seq);
+    const mk = (txt, k) => { const c = el('button', 'chip', txt); c._k = k; c.onclick = () => { if (locked) return; c.classList.remove('bad'); (c.parentNode === pool ? seq : pool).append(c); }; return c; };
+    shuffle(t.items.map((x, k) => ({ x, k }))).forEach(o => pool.append(mk(o.x, o.k)));
+    const cb = el('button', 'b', 'Prüfen'); body.append(cb);
+    cb.onclick = () => { if (locked) return; const ks = [...seq.children].map(c => c._k);
+      const ok = ks.length === t.items.length && ks.every((k, j) => k === j);
+      if (ok) { [...seq.children].forEach(c => { c.classList.add('ok'); c.disabled = true; }); cb.disabled = true; right(); }
+      else { [...seq.children].forEach((c, j) => c.classList.toggle('bad', c._k !== j)); wrong(); } };
+  }
+  return box;
+}
+// ================= Zeichen-Helfer (Teilchenmodell-Symbole) =================
+const COL = { circ: '#9CC9EA', hex: '#B5B5B5', sq: '#E65100', tri: '#66BB6A', dia: '#C62828' };
+const NAME = { circ: 'Wasserteilchen', hex: 'Sandteilchen', sq: 'Kochsalzteilchen', tri: 'Ethanolteilchen' };
+function poly(k, r) {
+  if (k === 'hex') return [0, 1, 2, 3, 4, 5].map(i => [r * Math.cos(i * Math.PI / 3), r * Math.sin(i * Math.PI / 3)]);
+  if (k === 'sq') return [[-.8 * r, -.8 * r], [.8 * r, -.8 * r], [.8 * r, .8 * r], [-.8 * r, .8 * r]];
+  if (k === 'tri') return [[0, -1.05 * r], [.95 * r, .7 * r], [-.95 * r, .7 * r]];
+  if (k === 'dia') return [[0, -r], [.8 * r, 0], [0, r], [-.8 * r, 0]];
+}
+function shp(g, k, x, y, r, rot = 0, fill) {
+  g.beginPath();
+  if (k === 'circ') g.arc(x, y, r, 0, Math.PI * 2);
+  else { const c = Math.cos(rot), s = Math.sin(rot); poly(k, r).forEach(([px, py], i) => { const X = x + px * c - py * s, Y = y + px * s + py * c; i ? g.lineTo(X, Y) : g.moveTo(X, Y); }); g.closePath(); }
+  g.fillStyle = fill || COL[k]; g.fill(); g.lineWidth = 1.3; g.strokeStyle = '#1a1a1a'; g.stroke();
+}
+function legendCv(g, x, y, items) {
+  g.font = '13px Calibri, Segoe UI, sans-serif'; g.textBaseline = 'middle'; g.textAlign = 'left';
+  g.fillStyle = '#fff'; g.strokeStyle = '#9aa7b6'; g.lineWidth = 1; g.fillRect(x - 8, y - 14, 150, items.length * 24 + 12); g.strokeRect(x - 8, y - 14, 150, items.length * 24 + 12);
+  g.fillStyle = '#1a1a1a'; g.font = 'bold 12px Calibri, Segoe UI, sans-serif'; g.fillText('Legende', x, y - 4);
+  g.font = '13px Calibri, Segoe UI, sans-serif';
+  items.forEach((it, i) => { shp(g, it[0], x + 9, y + 18 + i * 24, 7); g.fillStyle = '#1a1a1a'; g.fillText(it[1], x + 24, y + 18 + i * 24); });
+}
+function note(g, W, H, txt, left) { g.font = 'italic 12px Calibri, Segoe UI, sans-serif'; g.fillStyle = '#6b7684'; g.textAlign = left ? 'left' : 'right'; g.textBaseline = 'alphabetic'; g.fillText(txt, left ? 8 : W - 8, H - 8); }
+function mk(host, W, H) {
+  const c = el('canvas', 'sim'); c.width = W * 2; c.height = H * 2; const g = c.getContext('2d'); g.scale(2, 2); host.append(c); return { c, g };
+}
+function loop(fn) { let on = true, id; const f = () => { if (!on) return; fn(); id = requestAnimationFrame(f); }; f(); return () => { on = false; cancelAnimationFrame(id); }; }
+function btn(host, txt, cls, fn) { const b = el('button', 'b ' + (cls || ''), txt); b.onclick = fn; host.append(b); return b; }
+function ctrlRow(host) { const r = el('div', 'ctrl'); host.append(r); return r; }
+function msgBox(host) { const m = el('div', 'msg'); host.append(m); return m; }
+function slider(row, label, min, max, val, fn, unit) {
+  const l = el('label', '', label + ' '); const s = el('input'); s.type = 'range'; s.min = min; s.max = max; s.value = val;
+  const o = el('b', '', val + (unit || '')); s.oninput = () => { o.textContent = s.value + (unit || ''); fn(+s.value); }; row.append(l, s, o); return s;
+}
+const LABS = {};
+
+// ================= 1  Sieben =================
+LABS.sieb = (host, ctx) => {
+  const W = 640, H = 330, { c, g } = mk(host, W, H);
+  const MESH = { A: 36, B: 14, C: 4 }; let mesh = 'A', shaking = false, t0 = 0, done = false, fin = false;
+  const SY = 165, X0 = 170, X1 = 470, TB = 316;
+  let gr = [];
+  const reset = () => {
+    gr = []; shaking = false; done = false; fin = false; msg.textContent = ''; msg.className = 'msg';
+    for (let i = 0; i < 7; i++) gr.push({ k: 'kies', r: 10, x: rnd(X0 + 20, X1 - 20), y: SY - 10 - rnd(0, 12), st: 'top', rot: rnd(0, 6), c: ['#8d7b68', '#7a6a5b', '#9b8878'][i % 3] });
+    for (let i = 0; i < 45; i++) gr.push({ k: 'sand', r: 3, x: rnd(X0 + 20, X1 - 20), y: SY - 3 - rnd(0, 18), st: 'top', rot: rnd(0, 6), c: '#e0c38c', vy: 0 });
+  };
+  const row1 = ctrlRow(host), row2 = ctrlRow(host), msg = msgBox(host);
+  const sb = {};
+  ['A', 'B', 'C'].forEach(k => sb[k] = btn(row1, `Sieb ${k} (${k === 'A' ? 'grob' : k === 'B' ? 'mittel' : 'fein'})`, k === 'A' ? 'sel' : 'sec', () => { mesh = k; Object.keys(sb).forEach(x => sb[x].className = 'b ' + (x === k ? 'sel' : 'sec')); reset(); }));
+  const shb = btn(row2, '🔄 Rütteln', '', () => { shaking = !shaking; t0 = performance.now(); shb.textContent = shaking ? '⏸ Stopp' : '🔄 Rütteln'; });
+  btn(row2, 'Neu mischen', 'sec', reset);
+  reset();
+  const stop = loop(() => {
+    g.clearRect(0, 0, W, H);
+    // Sieb
+    g.lineWidth = 5; g.strokeStyle = '#555'; g.setLineDash([14, MESH[mesh]]); g.beginPath(); g.moveTo(X0, SY + 2); g.lineTo(X1, SY + 2); g.stroke(); g.setLineDash([]);
+    g.lineWidth = 3; g.beginPath(); g.moveTo(X0 - 8, SY - 30); g.lineTo(X0, SY + 8); g.lineTo(X1, SY + 8); g.lineTo(X1 + 8, SY - 30); g.stroke();
+    g.fillStyle = '#6b7684'; g.font = '13px Calibri, sans-serif'; g.textAlign = 'center'; g.fillText('Maschenweite: Lücke ≈ ' + (MESH[mesh] >= 30 ? '36' : MESH[mesh] >= 10 ? '14' : '4') + ' mm', (X0 + X1) / 2, SY + 28);
+    // Auffangschale
+    g.strokeStyle = '#444'; g.lineWidth = 3; g.beginPath(); g.moveTo(X0 - 10, TB - 25); g.lineTo(X0 + 5, TB + 4); g.lineTo(X1 - 5, TB + 4); g.lineTo(X1 + 10, TB - 25); g.stroke();
+    g.fillStyle = '#6b7684'; g.fillText('Auffangschale', (X0 + X1) / 2, TB + 17);
+    let top = 0, tray = 0, kiesTop = 0;
+    gr.forEach(p => {
+      if (p.st === 'top') {
+        top++; if (p.k === 'kies') kiesTop++;
+        if (shaking) { p.x += rnd(-2, 2); p.x = Math.max(X0 + 12, Math.min(X1 - 12, p.x)); p.y = SY - p.r - 2 - Math.abs(Math.sin(performance.now() / 70 + p.x)) * 7 - (p.k === 'sand' ? (p.x % 9) : 0);
+          if (p.r * 2 < MESH[mesh] && Math.random() < 0.035) { p.st = 'fall'; p.vy = 0; } }
+      } else if (p.st === 'fall') {
+        p.vy += 0.35; p.y += p.vy; if (p.y >= p.ty) { p.y = p.ty; p.st = 'tray'; }
+        if (!p.ty) { p.ty = TB - 3 - Math.random() * 14; }
+      } else tray++;
+      if (p.st === 'fall' && !p.ty) p.ty = TB - 3 - Math.random() * 14;
+      if (p.k === 'kies') { g.save(); g.translate(p.x, p.y); g.rotate(p.rot); g.beginPath(); g.moveTo(-10, 0); g.lineTo(-4, -9); g.lineTo(7, -8); g.lineTo(10, 2); g.lineTo(2, 9); g.lineTo(-8, 7); g.closePath(); g.fillStyle = p.c; g.fill(); g.lineWidth = 1.2; g.strokeStyle = '#333'; g.stroke(); g.restore(); }
+      else { g.beginPath(); g.arc(p.x, p.y, p.r, 0, 7); g.fillStyle = p.c; g.fill(); }
+    });
+    g.fillStyle = '#1a1a1a'; g.textAlign = 'left'; g.font = '13px Calibri, sans-serif';
+    g.fillText('● Kies (grob)', 12, 24); g.fillText('● Sand (fein)', 12, 44);
+    g.fillStyle = '#8d7b68'; g.fillText('●', 12, 24); g.fillStyle = '#e0c38c'; g.fillText('●', 12, 44);
+    note(g, W, H, 'Maßstab frei gewählt');
+    if (shaking && !fin) {
+      const dt = performance.now() - t0;
+      const sandTop = top - kiesTop;
+      if (mesh === 'A' && kiesTop === 0 && sandTop === 0) { fin = true; msg.textContent = 'Alles fällt durch – nichts ist getrennt. Die Lücken sind zu groß.'; }
+      else if (mesh === 'B' && sandTop === 0 && kiesTop === 7) { fin = true; done = true; msg.className = 'msg ok'; msg.textContent = '✔ Der Kies bleibt im Sieb, der Sand fällt hindurch: getrennt!'; ctx.success(); }
+      else if (mesh === 'C' && dt > 3500) { fin = true; msg.textContent = 'Nichts fällt durch – nichts ist getrennt. Die Lücken sind zu klein.'; }
+    }
+  });
+  return { destroy: stop };
+};
+
+// ================= 2  Sedimentieren & Dekantieren =================
+LABS.sed = (host, ctx) => {
+  const W = 640, H = 330, { c, g } = mk(host, W, H);
+  const BX0 = 90, BX1 = 290, BY0 = 50, BY1 = 290, B2X0 = 400, B2X1 = 540, B2Y0 = 170;
+  let ps = [], v = 0, success = false;
+  const msg = msgBox(host);
+  const init = () => {
+    ps = []; for (let i = 0; i < 48; i++) ps.push({ x: rnd(BX0 + 10, BX1 - 10), y: rnd(120, 280), vx: rnd(-.6, .6), vy: rnd(-.6, .6), st: 'susp', th: rnd(8, 82), rot: rnd(0, 6) });
+    v = 0; sl.value = 0; so.textContent = '0 %'; success = false; msg.textContent = ''; msg.className = 'msg';
+  };
+  const r1 = ctrlRow(host);
+  btn(r1, '🥄 Umrühren', 'sec', () => { ps.forEach(p => { if (p.st !== 'out') { p.st = 'susp'; p.th = rnd(8, 82); p.vx = rnd(-1, 1); p.vy = rnd(-1, 1); } }); });
+  btn(r1, '⏩ Warten (Zeitraffer)', '', () => { ps.forEach(p => { if (p.st === 'susp') { p.st = 'sink'; p.vy = rnd(.5, 1.1); p.fy = rnd(262, 284); p.th = rnd(90, 100); } }); });
+  btn(r1, 'Neu starten', 'sec', init);
+  const r2 = ctrlRow(host); const l = el('label', '', 'Abgießen (Kippen):'); const sl = el('input'); sl.type = 'range'; sl.min = 0; sl.max = 100; sl.value = 0; const so = el('b', '', '0 %');
+  sl.oninput = () => { v = +sl.value; so.textContent = v + ' %'; }; r2.append(l, sl, so);
+  init();
+  const stop = loop(() => {
+    g.clearRect(0, 0, W, H);
+    const surf = 70 + v * 1.75;                      // Wasseroberfläche Becher 1
+    const w2 = Math.min(1, v / 100) * 70;            // Füllhöhe Becher 2
+    // Wasser
+    g.fillStyle = '#e1f0fb'; g.fillRect(BX0, surf, BX1 - BX0, BY1 - surf);
+    g.fillRect(B2X0, 290 - w2 - 8, B2X1 - B2X0, w2 + 8);
+    g.strokeStyle = '#333'; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(BX0, BY0); g.lineTo(BX0, BY1); g.lineTo(BX1, BY1); g.lineTo(BX1, BY0); g.stroke();
+    g.beginPath(); g.moveTo(B2X0, B2Y0); g.lineTo(B2X0, 290); g.lineTo(B2X1, 290); g.lineTo(B2X1, B2Y0); g.stroke();
+    g.fillStyle = '#6b7684'; g.font = '13px Calibri, sans-serif'; g.textAlign = 'center'; g.fillText('Becherglas 1', (BX0 + BX1) / 2, 310); g.fillText('Becherglas 2', (B2X0 + B2X1) / 2, 310);
+    if (v > 0) { g.strokeStyle = '#79b4e0'; g.lineWidth = 3; g.beginPath(); g.moveTo(BX1 - 4, surf); g.quadraticCurveTo(BX1 + 60, surf - 10, (B2X0 + B2X1) / 2, 290 - w2 - 8); g.stroke(); }
+    let out = 0, floor = 0;
+    ps.forEach(p => {
+      if (p.st === 'susp') { p.x += p.vx; p.y += p.vy; p.vx += rnd(-.08, .08); p.vy += rnd(-.08, .08); p.vx = Math.max(-1.1, Math.min(1.1, p.vx)); p.vy = Math.max(-1.1, Math.min(1.1, p.vy));
+        if (p.x < BX0 + 8 || p.x > BX1 - 8) p.vx *= -1; if (p.y < surf + 8) p.vy = Math.abs(p.vy); if (p.y > 284) p.vy = -Math.abs(p.vy); }
+      else if (p.st === 'sink') { p.y += p.vy; p.x += rnd(-.2, .2); if (p.y >= p.fy) { p.y = p.fy; p.st = 'floor'; } }
+      else if (p.st === 'floor') { floor++; }
+      else if (p.st === 'out') { out++; if (p.y < p.fy) p.y += 1.2; }
+      if (p.st !== 'out' && v >= p.th) { p.st = 'out'; p.x = rnd(B2X0 + 10, B2X1 - 10); p.y = 200; p.fy = rnd(272, 284); }
+      shp(g, 'hex', p.x, p.y, 5.5, 0, COL.hex);
+    });
+    g.fillStyle = '#1a1a1a'; g.textAlign = 'left'; g.font = '13px Calibri, sans-serif'; shp(g, 'hex', 400, 40, 6); g.fillText('Feststoffteilchen', 412, 44);
+    g.fillText('(Teilchenverbände, stark vergrößert)', 392, 64);
+    if (!success) {
+      if (v === 0 && floor < 10) msg.textContent = 'Tipp: Erst umrühren, dann den Feststoff absetzen lassen (Warten).';
+      if (floor >= 40 && v > 5 && v < 60) { msg.className = 'msg'; msg.textContent = 'Der Feststoff liegt am Boden. Gieße jetzt vorsichtig das klare Wasser ab – ohne den Bodensatz zu verlieren.'; }
+      if (floor >= 40 && v >= 60 && v <= 88 && out <= 2) { success = true; msg.className = 'msg ok'; msg.textContent = '✔ Dekantiert! Klares Wasser in Becherglas 2 – ein Rest bleibt über dem Bodensatz: nur eine grobe Trennung.'; ctx.success(); }
+      if (floor >= 40 && v > 88) { msg.className = 'msg'; msg.textContent = '⚠ Zu weit gekippt – der Bodensatz fließt mit hinaus. Neu starten oder zurückkippen.'; }
+      if (floor < 40 && v > 25 && out > 3) { msg.className = 'msg'; msg.textContent = '⚠ Du hast gegossen, bevor sich alles abgesetzt hat – das Wasser ist noch trüb.'; }
+    }
+  });
+  return { destroy: stop };
+};
+
+// ================= 3  Filtrieren =================
+LABS.filter = (host, ctx) => {
+  const W = 640, H = 370, { c, g } = mk(host, W, H);
+  const FY = 150, CX = 260; let ps = [], mode = null, spawn = 0, queue = [], passed = 0, tray = [], ran = { sand: false, salz: false };
+  const left = y => 140 + (y - 30) * (85 / 120), right = y => 380 - (y - 30) * (85 / 120);
+  const msg = msgBox(host), r1 = ctrlRow(host);
+  const start = m => {
+    mode = m; ps = []; tray = []; passed = 0; spawn = 0; queue = [];
+    if (m === 'sand') { for (let i = 0; i < 4; i++) queue.push({ k: 'cl' }); for (let i = 0; i < 34; i++) queue.push({ k: 'circ' }); }
+    else { for (let i = 0; i < 12; i++) queue.push({ k: 'sq' }); for (let i = 0; i < 28; i++) queue.push({ k: 'circ' }); }
+    queue = shuffle(queue); msg.className = 'msg'; msg.textContent = m === 'sand' ? 'Sand-Wasser-Gemisch läuft durch das Filterpapier …' : 'Salzwasser läuft durch das Filterpapier …';
+  };
+  btn(r1, '🏖 Sand-Wasser-Gemisch filtrieren', '', () => start('sand'));
+  btn(r1, '🧂 Salzwasser filtrieren', 'sec', () => start('salz'));
+  const clusterShape = (x, y, rot) => { shp(g, 'hex', x, y, 5.5, 0); [0, 1, 2, 3, 4, 5].forEach(i => shp(g, 'hex', x + 9.5 * Math.cos(i * Math.PI / 3), y + 9.5 * Math.sin(i * Math.PI / 3), 5.5, 0)); };
+  const stop = loop(() => {
+    g.clearRect(0, 0, W, H);
+    // Trichter
+    g.strokeStyle = '#444'; g.lineWidth = 3; g.beginPath(); g.moveTo(140, 30); g.lineTo(225, 150); g.lineTo(245, 200); g.lineTo(245, 245); g.moveTo(380, 30); g.lineTo(295, 150); g.lineTo(275, 200); g.lineTo(275, 245); g.stroke();
+    g.strokeStyle = '#a07b4a'; g.lineWidth = 4; g.setLineDash([10, 5]); g.beginPath(); g.moveTo(225, FY); g.lineTo(295, FY); g.stroke(); g.setLineDash([]);
+    g.fillStyle = '#a07b4a'; g.font = '13px Calibri, sans-serif'; g.textAlign = 'left'; g.fillText('Filterpapier mit feinen Poren', 305, FY + 4);
+    // Becher
+    g.strokeStyle = '#444'; g.lineWidth = 3; g.beginPath(); g.moveTo(205, 275); g.lineTo(205, 350); g.lineTo(315, 350); g.lineTo(315, 275); g.stroke();
+    g.fillStyle = '#6b7684'; g.textAlign = 'center'; g.fillText('Becherglas', 260, 366);
+    // spawn
+    if (mode && queue.length && (spawn++ % 5 === 0)) { const q = queue.pop(); ps.push({ k: q.k, x: rnd(190, 330), y: 38, vx: rnd(-.6, .6), vy: 0, st: 'in', rot: rnd(0, 6), r: q.k === 'cl' ? 14 : 5 }); }
+    ps.forEach(p => {
+      if (p.st === 'in') {
+        p.vy += .11; p.vx += rnd(-.15, .15); p.vx *= .98; p.vy *= .985; p.x += p.vx; p.y += p.vy;
+        const L = left(Math.min(p.y, 150)) + p.r + 3, R = right(Math.min(p.y, 150)) - p.r - 3;
+        if (p.x < L) { p.x = L; p.vx = Math.abs(p.vx); } if (p.x > R) { p.x = R; p.vx = -Math.abs(p.vx); }
+        if (p.y > FY - p.r - 2) {
+          if (p.k === 'cl') { const n = ps.filter(q => q !== p && q.k === 'cl' && q.st === 'stuck' && Math.abs(q.x - p.x) < 30).length; p.y = FY - p.r - 2 - n * 22; p.vy = 0; p.vx = 0; p.st = 'stuck'; }
+          else if (Math.random() < .08 && p.x > 232 && p.x < 288) { p.st = 'fall'; p.vx = 0; p.vy = 1.5; }
+          else { p.y = FY - p.r - 2; p.vy = -Math.abs(p.vy) * .3; }
+        }
+      } else if (p.st === 'fall') {
+        p.vy += .25; p.y += p.vy; p.x = Math.max(250, Math.min(270, p.x + rnd(-.6, .6)));
+        const idx = tray.length; const ty = 344 - Math.floor(idx / 9) * 10; const tx = 214 + (idx % 9) * 11 + rnd(-1, 1);
+        if (p.y >= 262 && !p.dest) { p.dest = { x: tx, y: ty }; tray.push(p); }
+        if (p.dest && p.y >= p.dest.y) { p.y = p.dest.y; p.st = 'tray'; passed++; } if (p.dest) p.x += (p.dest.x - p.x) * .15;
+      }
+      if (p.k === 'cl') clusterShape(p.x, p.y); else shp(g, p.k, p.x, p.y, p.r, p.rot);
+    });
+    legendCv(g, 440, 200, mode === 'salz' ? [['circ', 'Wasserteilchen'], ['sq', 'Salzteilchen']] : [['circ', 'Wasserteilchen'], ['hex', 'Sandteilchen']]);
+    note(g, W, H, 'Teilchen stark vergrößert');
+    if (mode && !queue.length && ps.every(p => p.st !== 'in' && p.st !== 'fall')) {
+      g.fillStyle = '#c62828'; g.font = 'bold 14px Calibri, sans-serif'; g.textAlign = 'left';
+      if (mode === 'sand') { g.fillText('← Filterrückstand: Sandteilchen-Verbände', 330, 120); }
+      g.fillStyle = '#1F5F8B'; g.fillText('Filtrat ↑', 330, 300);
+      if (!ran[mode]) { ran[mode] = true;
+        msg.className = 'msg ok';
+        msg.textContent = mode === 'sand' ? '✔ Die Sand-Verbände bleiben im Filter hängen, das Wasser läuft hindurch.' : '✔ Auch die Salzteilchen laufen mit durch – sie sind einzeln gelöst und kleiner als die Poren!';
+        if (ran.sand && ran.salz) ctx.success(); else msg.textContent += ' Teste noch das andere Gemisch.'; }
+    }
+  });
+  return { destroy: stop };
+};
+
+// ================= 4  Eindampfen =================
+LABS.eindampf = (host, ctx) => {
+  const W = 640, H = 350, { c, g } = mk(host, W, H);
+  const msg = msgBox(host); let T = 20, ps = [], gas = [], done = false, tick = 0;
+  const BX0 = 150, BX1 = 370, BY = 255;
+  const init = () => {
+    ps = []; gas = []; done = false; msg.textContent = ''; msg.className = 'msg';
+    for (let i = 0; i < 30; i++) ps.push({ k: 'circ', x: rnd(BX0 + 15, BX1 - 15), y: rnd(215, 245), vx: rnd(-1, 1), vy: rnd(-1, 1), r: 5, rot: 0 });
+    for (let i = 0; i < 10; i++) ps.push({ k: 'sq', x: rnd(BX0 + 15, BX1 - 15), y: rnd(215, 245), vx: rnd(-1, 1), vy: rnd(-1, 1), r: 5, rot: rnd(0, 6) });
+  };
+  const r1 = ctrlRow(host);
+  const sl = slider(r1, '🔥 Temperatur', 20, 120, 20, x => T = x, ' °C'); btn(r1, 'Neu starten', 'sec', () => { sl.value = 20; sl.oninput(); init(); });
+  init();
+  const stop = loop(() => {
+    tick++; g.clearRect(0, 0, W, H);
+    // Schale
+    g.strokeStyle = '#444'; g.lineWidth = 3; g.fillStyle = '#e8f3fb';
+    const water = ps.filter(p => p.k === 'circ').length;
+    g.beginPath(); g.moveTo(BX0 - 10, 200); g.quadraticCurveTo(BX0, BY + 8, 260, BY + 8); g.quadraticCurveTo(BX1, BY + 8, BX1 + 10, 200); g.stroke();
+    if (water > 0) { g.beginPath(); const lvl = 255 - Math.min(1, water / 30) * 55; g.moveTo(BX0 - 2 + (255 - lvl) * .15, lvl); g.lineTo(BX1 + 2 - (255 - lvl) * .15, lvl); g.quadraticCurveTo(BX1, BY + 5, 260, BY + 6); g.quadraticCurveTo(BX0, BY + 5, BX0 - 2 + (255 - lvl) * .15, lvl); g.fill(); }
+    // Flamme
+    if (T > 25) { const h = 12 + (T - 20) / 100 * 40; g.fillStyle = '#ff9800'; g.beginPath(); g.moveTo(240, 300 - h); g.lineTo(280, 300); g.lineTo(240, 300); g.closePath(); g.moveTo(280, 300 - h); g.lineTo(300, 300); g.lineTo(260, 300); g.closePath(); g.fill(); g.fillStyle = '#ffd54f'; g.beginPath(); g.moveTo(260, 300 - h * .6); g.lineTo(275, 300); g.lineTo(245, 300); g.closePath(); g.fill(); }
+    g.fillStyle = '#555'; g.fillRect(246, 300, 28, 24); g.fillStyle = '#666'; g.fillRect(230, 324, 60, 6);
+    g.strokeStyle = '#555'; g.lineWidth = 3; g.beginPath(); g.moveTo(150, 290); g.lineTo(150, 205); g.moveTo(370, 290); g.lineTo(370, 205); g.moveTo(120, 290); g.lineTo(400, 290); g.stroke();
+    // Teilchen
+    const sp = 0.5 + (T - 20) / 45;
+    const pEv = T < 100 ? (T > 60 ? 0.00025 * (T - 60) / 40 : 0) : 0.012;
+    const wl = ps.filter(p => p.k === 'circ').length;
+    for (let i = ps.length - 1; i >= 0; i--) {
+      const p = ps[i];
+      if (p.k === 'sq' && wl < 8) { // Kristall bilden
+        const idx = ps.filter(q => q.k === 'sq').indexOf(p), tx = 215 + (idx % 5) * 21 + (Math.floor(idx / 5) % 2) * 10, ty = 238 - Math.floor(idx / 5) * 17;
+        p.x += (tx - p.x) * .05; p.y += (ty - p.y) * .05;
+      } else {
+        p.x += p.vx * sp; p.y += p.vy * sp; p.vx += rnd(-.2, .2); p.vy += rnd(-.2, .2); p.vx = Math.max(-1.6, Math.min(1.6, p.vx)); p.vy = Math.max(-1.6, Math.min(1.6, p.vy));
+        const top = 255 - Math.min(1, Math.max(wl, 6) / 30) * 55 + 8;
+        if (p.x < BX0 + 12) { p.x = BX0 + 12; p.vx = Math.abs(p.vx); } if (p.x > BX1 - 12) { p.x = BX1 - 12; p.vx = -Math.abs(p.vx); }
+        if (p.y < top) { p.y = top; p.vy = Math.abs(p.vy); } if (p.y > BY - 4) { p.y = BY - 4; p.vy = -Math.abs(p.vy); }
+        if (p.k === 'circ' && Math.random() < pEv) { ps.splice(i, 1); gas.push({ k: 'circ', x: p.x, y: p.y - 10, vx: rnd(-1.2, 1.2), vy: -rnd(1.5, 2.6), r: 5 }); continue; }
+      }
+      shp(g, p.k, p.x, p.y, p.r, p.rot);
+    }
+    for (let i = gas.length - 1; i >= 0; i--) { const p = gas[i]; p.x += p.vx; p.y += p.vy; if (p.x < 130 || p.x > 390) p.vx *= -1; if (p.y < 20) { gas.splice(i, 1); continue; } shp(g, 'circ', p.x, p.y, p.r); }
+    // Thermometer
+    g.fillStyle = '#fff'; g.strokeStyle = '#444'; g.lineWidth = 2; g.fillRect(455, 60, 16, 220); g.strokeRect(455, 60, 16, 220);
+    const hh = (T - 20) / 100 * 200; g.fillStyle = T >= 100 ? '#c62828' : '#ef5350'; g.fillRect(457, 278 - hh, 12, hh);
+    g.fillStyle = '#444'; g.font = 'bold 13px Calibri, sans-serif'; g.textAlign = 'right'; g.fillText(T + ' °C', 448, 278 - hh + 4); g.textAlign = 'left';
+    g.strokeStyle = '#999'; g.lineWidth = 1; g.beginPath(); g.moveTo(448, 278 - 80); g.lineTo(520, 278 - 80); g.stroke(); g.fillStyle = '#999'; g.font = '12px Calibri, sans-serif'; g.fillText('100 °C: Wasser siedet', 478, 278 - 84);
+    legendCv(g, 490, 36, [['circ', 'Wasserteilchen'], ['sq', 'Salzteilchen']]);
+    note(g, W, H, 'Teilchen stark vergrößert');
+    g.textAlign = 'center'; g.fillStyle = '#6b7684'; g.fillText('Abdampfschale', 260, 342);
+    const wn = ps.filter(p => p.k === 'circ').length + gas.length;
+    if (!done) {
+      if (T < 100 && T > 25) { msg.className = 'msg'; msg.textContent = 'Die Teilchen werden schneller, aber das Wasser siedet noch nicht – es verdunstet nur sehr langsam.'; }
+      else if (T >= 100 && wn > 0) { msg.className = 'msg'; msg.textContent = 'Das Wasser siedet! Die Wasserteilchen überwinden die Anziehungskräfte und gehen in den gasförmigen Zustand über.'; }
+      if (wn === 0 && ps.filter(p => p.k === 'sq').every(p => Math.abs(p.y - (238 - Math.floor(ps.filter(q => q.k === 'sq').indexOf(p) / 5) * 17)) < 2)) { done = true; msg.className = 'msg ok'; msg.textContent = '✔ Das Wasser ist verdampft. Die Salzteilchen bleiben als Kristall zurück – denn Kochsalz siedet erst bei 1465 °C!'; ctx.success(); }
+    }
+  });
+  return { destroy: stop };
+};
+
+// ================= 5  Destillieren =================
+LABS.destill = (host, ctx) => {
+  const W = 700, H = 350, { c, g } = mk(host, W, H);
+  const FX = 140, FY = 215, FR = 62, PATH = [[140, 110], [215, 126], [430, 228], [488, 250]];
+  let T = 20, liq = [], gas = [], dest = [], done = false;
+  const msg = msgBox(host);
+  const init = () => { liq = []; gas = []; dest = []; done = false; msg.textContent = ''; msg.className = 'msg';
+    for (let i = 0; i < 16; i++) liq.push({ k: 'circ', x: rnd(FX - 40, FX + 40), y: rnd(FY + 5, FY + 45), vx: rnd(-1, 1), vy: rnd(-1, 1), r: 4.8 });
+    for (let i = 0; i < 16; i++) liq.push({ k: 'tri', x: rnd(FX - 40, FX + 40), y: rnd(FY + 5, FY + 45), vx: rnd(-1, 1), vy: rnd(-1, 1), r: 4.8, rot: 0 }); };
+  const r1 = ctrlRow(host); const sl = slider(r1, '🔥 Temperatur im Kolben', 20, 105, 20, x => T = x, ' °C'); btn(r1, 'Neu starten', 'sec', () => { sl.value = 20; sl.oninput(); init(); });
+  const info = el('p', 'hint', 'Gemisch: Wasser (Siedetemperatur 100 °C) und Ethanol (Siedetemperatur 78 °C). Die Zahlen ①–⑥ brauchst du in Aufgabe 1.'); host.append(info);
+  init();
+  const badge = (n, x, y) => { g.fillStyle = '#1a1a1a'; g.beginPath(); g.arc(x, y, 11, 0, 7); g.fill(); g.fillStyle = '#fff'; g.font = 'bold 13px Calibri, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(n, x, y + 1); g.textBaseline = 'alphabetic'; };
+  const stop = loop(() => {
+    g.clearRect(0, 0, W, H);
+    // Gasbrenner + Flamme
+    if (T > 25) { const h = 10 + (T - 20) / 85 * 34; g.fillStyle = '#ff9800'; g.beginPath(); g.moveTo(FX - 14, 292); g.lineTo(FX, 292 - h); g.lineTo(FX + 14, 292); g.closePath(); g.fill(); }
+    g.fillStyle = '#555'; g.fillRect(FX - 10, 292, 20, 28); g.fillStyle = '#666'; g.fillRect(FX - 28, 320, 56, 6);
+    // Kolben
+    g.fillStyle = '#e8f3fb'; g.beginPath(); g.arc(FX, FY, FR - 1, 0.2, Math.PI - 0.2); g.closePath(); g.fill();
+    g.strokeStyle = '#444'; g.lineWidth = 3; g.beginPath(); g.arc(FX, FY, FR, -1.3105, Math.PI + 1.3105, false); g.stroke();
+    g.beginPath(); g.moveTo(FX + 16, 112); g.lineTo(215, 118); g.moveTo(FX + 16, 134); g.lineTo(215, 134); g.stroke();
+    g.beginPath(); g.moveTo(FX - 16, 155); g.lineTo(FX - 16, 100); g.moveTo(FX + 16, 155); g.lineTo(FX + 16, 100); g.stroke();
+    g.fillStyle = '#b5651d'; g.fillRect(FX - 18, 88, 36, 14);
+    // Thermometer im Stopfen
+    g.fillStyle = '#fff'; g.strokeStyle = '#444'; g.lineWidth = 2; g.fillRect(FX - 4, 40, 8, 100); g.strokeRect(FX - 4, 40, 8, 100); g.fillStyle = '#c62828'; const th = (T - 20) / 85 * 60; g.fillRect(FX - 2, 138 - th, 4, th);
+    g.fillStyle = '#444'; g.font = 'bold 13px Calibri, sans-serif'; g.textAlign = 'right'; g.fillText(T + ' °C', FX - 10, 70);
+    // Kühler
+    g.save(); g.translate(215, 122); g.rotate(Math.atan2(106, 215)); const kl = Math.hypot(215, 106);
+    g.fillStyle = '#d6ecfa'; g.strokeStyle = '#444'; g.lineWidth = 2; g.fillRect(0, -17, kl, 34); g.strokeRect(0, -17, kl, 34);
+    g.fillStyle = '#fff'; g.fillRect(0, -4, kl + 25, 8); g.strokeRect(0, -4, kl + 25, 8); g.restore();
+    // Kühlwasser-Pfeile
+    g.strokeStyle = '#2E75B6'; g.fillStyle = '#2E75B6'; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(405, 262); g.lineTo(385, 242); g.stroke(); g.beginPath(); g.moveTo(385, 242); g.lineTo(394, 244); g.lineTo(387, 252); g.fill();
+    g.beginPath(); g.moveTo(228, 100); g.lineTo(215, 86); g.stroke();
+    // Vorlage
+    g.strokeStyle = '#444'; g.lineWidth = 3; g.beginPath(); g.moveTo(470, 270); g.lineTo(470, 330); g.lineTo(560, 330); g.lineTo(560, 270); g.stroke();
+    const nd = dest.length; if (nd) { const hgt = Math.min(55, nd * 2.4 + 2); g.fillStyle = '#e8f3fb'; g.fillRect(471, 329 - hgt, 88, hgt); }
+    // Teilchen im Kolben
+    const sp = 0.5 + (T - 20) / 40;
+    const pTri = T < 65 ? 0 : T < 78 ? 0.0008 : 0.018, pCirc = T < 95 ? 0 : T < 100 ? 0.0012 : 0.02;
+    for (let i = liq.length - 1; i >= 0; i--) {
+      const p = liq[i]; p.x += p.vx * sp; p.y += p.vy * sp; p.vx += rnd(-.2, .2); p.vy += rnd(-.2, .2); p.vx = Math.max(-1.5, Math.min(1.5, p.vx)); p.vy = Math.max(-1.5, Math.min(1.5, p.vy));
+      const dx = p.x - FX, dy = p.y - FY, d = Math.hypot(dx, dy); if (d > FR - 9) { p.x = FX + dx / d * (FR - 9); p.y = FY + dy / d * (FR - 9); p.vx *= -1; p.vy *= -1; }
+      if (p.y < FY + 4) { p.y = FY + 4; p.vy = Math.abs(p.vy); }
+      if (Math.random() < (p.k === 'tri' ? pTri : pCirc)) { liq.splice(i, 1); gas.push({ k: p.k, s: 0, r: p.r }); continue; }
+      shp(g, p.k, p.x, p.y, p.r, p.rot || 0);
+    }
+    // Gasteilchen entlang des Weges
+    for (let i = gas.length - 1; i >= 0; i--) {
+      const p = gas[i]; p.s += 2.6; let rem = p.s, seg = 0, x, y;
+      for (seg = 0; seg < PATH.length - 1; seg++) { const L = Math.hypot(PATH[seg + 1][0] - PATH[seg][0], PATH[seg + 1][1] - PATH[seg][1]); if (rem <= L) { x = PATH[seg][0] + (PATH[seg + 1][0] - PATH[seg][0]) * rem / L; y = PATH[seg][1] + (PATH[seg + 1][1] - PATH[seg][1]) * rem / L; break; } rem -= L; }
+      if (x === undefined) { // Ende erreicht -> Tropfen
+        gas.splice(i, 1); dest.push({ k: p.k, x: rnd(480, 550), y: 266, fy: 324 - Math.floor(dest.length / 8) * 10 - rnd(0, 3), r: p.r }); continue; }
+      const jx = x + (p.j = p.j || rnd(-3, 3)); const jy = y + (p.jy = p.jy || rnd(-3, 3)); shp(g, p.k, jx, jy, p.r, 0);
+    }
+    dest.forEach(p => { if (p.y < p.fy) p.y += 2.5; shp(g, p.k, p.x, Math.min(p.y, p.fy), p.r); });
+    [[1, FX + 26, 40], [2, FX - 80, 190], [3, FX + 36, 304], [4, 330, 150], [5, 400, 280], [6, 520, 300]].forEach(a => badge(...a));
+    legendCv(g, 540, 40, [['circ', 'Wasserteilchen'], ['tri', 'Ethanolteilchen']]);
+    note(g, W, H, 'Teilchen stark vergrößert', true);
+    g.fillStyle = '#1F5F8B'; g.font = 'bold 13px Calibri, sans-serif'; g.textAlign = 'center';
+    const dt = dest.filter(p => p.k === 'tri').length, dc = dest.filter(p => p.k === 'circ').length;
+    g.fillText(`Destillat: ${dt} Ethanol-, ${dc} Wasserteilchen`, 515, 345);
+    if (!done) {
+      if (T < 65 && T > 25) { msg.className = 'msg'; msg.textContent = 'Es ist noch zu kalt. Erhitze weiter.'; }
+      if (dt >= 5 && dc === 0 && T >= 78 && T < 95) { msg.className = 'msg'; msg.textContent = 'Nur die Ethanolteilchen mit der niedrigeren Siedetemperatur verdampfen und kondensieren im Kühler …'; }
+      if (dc > 0 && T >= 95) { msg.className = 'msg'; msg.textContent = '⚠ Jetzt verdampfen auch Wasserteilchen – das Destillat wird unrein. Besser bei ca. 80–90 °C bleiben!'; }
+      if (dt >= 12 && dc === 0) { done = true; msg.className = 'msg ok'; msg.textContent = '✔ Reines Ethanol im Destillat! Der Trick: Temperatur zwischen den beiden Siedetemperaturen halten.'; ctx.success(); }
+    }
+  });
+  return { destroy: stop };
+};
+
+// ================= 7  Bonus: Spezialverfahren (Animationen) =================
+LABS.spezial = (host, ctx) => {
+  const wrap = el('div', 'cards3');
+  wrap.innerHTML = `
+  <div class="c"><b>Adsorbieren</b> – Aktivkohle
+    <svg viewBox="0 0 240 170"><rect width="240" height="170" fill="#fff"/>
+      <path d="M120 40 C170 30 200 70 190 110 C180 150 100 160 60 130 C30 100 60 50 120 40Z" fill="#555" stroke="#111" stroke-width="2"/>
+      <g fill="#fff"><circle cx="100" cy="80" r="5"/><circle cx="130" cy="70" r="4"/><circle cx="150" cy="100" r="6"/><circle cx="110" cy="115" r="5"/><circle cx="80" cy="105" r="4"/><circle cx="165" cy="75" r="3"/></g>
+      <g stroke="#111" stroke-width="1.3"><g><polygon points="20,30 31,50 9,50" fill="#66BB6A"/><animateTransform attributeName="transform" type="translate" values="0 0;90 38;90 38" dur="4s" repeatCount="indefinite"/></g>
+      <g><polygon points="30,130 41,150 19,150" fill="#66BB6A"/><animateTransform attributeName="transform" type="translate" values="0 0;40 -22;40 -22" dur="5s" repeatCount="indefinite"/></g>
+      <g><polygon points="210,20 221,40 199,40" fill="#66BB6A"/><animateTransform attributeName="transform" type="translate" values="0 0;-30 40;-30 40" dur="4.5s" repeatCount="indefinite"/></g></g>
+      <text x="120" y="165" font-size="11" text-anchor="middle" fill="#555">Teilchen lagern sich an der Oberfläche an</text></svg></div>
+  <div class="c"><b>Extrahieren</b> – Tee aufbrühen
+    <svg viewBox="0 0 240 170"><rect width="240" height="170" fill="#fff"/>
+      <path d="M60 40 L60 140 Q60 150 70 150 L170 150 Q180 150 180 140 L180 40" fill="#eaf4fb" stroke="#111" stroke-width="3"/>
+      <rect x="100" y="55" width="40" height="40" fill="#e6d7a8" stroke="#111" stroke-width="2"/><line x1="120" y1="55" x2="120" y2="20" stroke="#111"/>
+      <g stroke="#111" stroke-width="1.2" fill="#C62828"><polygon points="120,92 126,100 120,108 114,100"><animateTransform attributeName="transform" type="translate" values="0 0;-45 40;-45 40" dur="4s" repeatCount="indefinite"/></polygon>
+      <polygon points="120,92 126,100 120,108 114,100"><animateTransform attributeName="transform" type="translate" values="0 0;40 30;40 30" dur="5s" repeatCount="indefinite"/></polygon>
+      <polygon points="120,92 126,100 120,108 114,100"><animateTransform attributeName="transform" type="translate" values="0 0;10 45;10 45" dur="3.5s" repeatCount="indefinite"/></polygon></g>
+      <text x="120" y="167" font-size="11" text-anchor="middle" fill="#555">Heißes Wasser löst Stoffe heraus</text></svg></div>
+  <div class="c"><b>Zentrifugieren</b> – Honigschleuder
+    <svg viewBox="0 0 240 170"><rect width="240" height="170" fill="#fff"/>
+      <g><g stroke="#111" stroke-width="2"><rect x="105" y="20" width="30" height="60" rx="10" fill="#fff6c9"/><rect x="105" y="90" width="30" height="60" rx="10" fill="#fff6c9"/></g>
+      <g fill="#b0792e"><circle cx="112" cy="35" r="3"/><circle cx="125" cy="45" r="3"/><circle cx="118" cy="55" r="3"/><circle cx="112" cy="105" r="3"/><circle cx="127" cy="118" r="3"/></g>
+      <rect x="112" y="76" width="16" height="14" fill="#555"/>
+      <animateTransform attributeName="transform" type="rotate" values="0 120 85;360 120 85" dur="2.5s" repeatCount="indefinite"/></g>
+      <text x="120" y="167" font-size="11" text-anchor="middle" fill="#555">Schleudern: dichterer Stoff wandert nach außen</text></svg></div>`;
+  host.append(wrap);
+  return { destroy() {} };
+};
+// ================= Skizzen zum Abzeichnen (SVG) =================
+const SP = (k, x, y, r, f) => k === 'circ'
+  ? `<circle cx="${x}" cy="${y}" r="${r}" fill="${COL.circ}" stroke="#111" stroke-width="1.2"/>`
+  : `<polygon points="${poly(k, r).map(([a, b]) => (x + a).toFixed(1) + ',' + (y + b).toFixed(1)).join(' ')}" fill="${f || COL[k]}" stroke="#111" stroke-width="1.2" stroke-linejoin="round"/>`;
+const TX = (x, y, t, o = '') => `<text x="${x}" y="${y}" font-size="13" font-family="Calibri,Segoe UI,sans-serif" fill="#1a1a1a" ${o}>${t}</text>`;
+const LN = (x1, y1, x2, y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#666" stroke-width="1"/>`;
+const SKETCH = {};
+SKETCH.filter = () => {
+  let s = `<svg viewBox="0 0 600 280" width="600"><rect width="560" height="270" fill="#fff"/>`;
+  s += `<path d="M15 20 L90 125 L90 175 M185 20 L110 125 L110 175" fill="none" stroke="#111" stroke-width="2.5"/>`;
+  s += `<path d="M30 30 L100 128 L170 30" fill="#f6efe2" fill-opacity=".6" stroke="#a07b4a" stroke-width="2.5" stroke-dasharray="7 4"/>`;
+  s += `<path d="M60 190 L60 240 L140 240 L140 190" fill="none" stroke="#111" stroke-width="2.5"/><rect x="61" y="218" width="78" height="21" fill="#cfe6f7"/>`;
+  s += SP('hex', 85, 100, 6) + SP('hex', 95, 106, 6) + SP('hex', 108, 102, 6) + SP('hex', 100, 94, 6);
+  s += `<rect x="70" y="52" width="60" height="38" fill="#cfe6f7" opacity=".7"/>`;
+  s += TX(205, 55, 'Gemisch') + LN(135, 60, 200, 52) + TX(205, 100, 'Filterrückstand') + LN(118, 100, 200, 97) + TX(205, 135, 'Filterpapier') + LN(100, 128, 200, 132) + TX(160, 232, 'Filtrat', 'font-weight="bold"') + LN(140, 230, 155, 230);
+  // Teilchenbild
+  s += `<rect x="330" y="20" width="210" height="190" fill="none" stroke="#111" stroke-width="2"/>`;
+  [[330, 372], [390, 428], [446, 488], [504, 540]].forEach(a => s += `<rect x="${a[0]}" y="118" width="${a[1] - a[0]}" height="6" fill="#a07b4a"/>`);
+  const cl = (x, y) => { let t = SP('hex', x, y, 7); for (let i = 0; i < 6; i++) t += SP('hex', x + 12 * Math.cos(i * Math.PI / 3), y + 12 * Math.sin(i * Math.PI / 3), 7); return t; };
+  s += cl(380, 92) + cl(480, 96) + [[350, 40], [410, 52], [450, 38], [520, 56], [430, 80], [350, 70], [510, 90], [395, 35], [465, 60]].map(a => SP('circ', a[0], a[1], 7)).join('');
+  s += [[352, 150], [412, 168], [452, 150], [512, 172], [432, 190], [382, 190], [500, 140]].map(a => SP('circ', a[0], a[1], 7)).join('');
+  s += TX(336, 112, 'Filter', 'font-size="11"') + TX(330, 236, 'Legende:', 'font-weight="bold"') + SP('hex', 410, 232, 7) + TX(422, 237, 'Sandteilchen') + SP('circ', 505, 232, 7) + TX(517, 237, 'Wasserteilchen');
+  s += TX(330, 262, 'Teilchen stark vergrößert', 'font-size="11" fill="#666"');
+  return s + '</svg>';
+};
+SKETCH.eindampf = () => {
+  let s = `<svg viewBox="0 0 600 260" width="600"><rect width="560" height="250" fill="#fff"/>`;
+  s += TX(40, 24, 'Salzlösung (vorher)', 'font-weight="bold"') + `<rect x="30" y="40" width="190" height="130" fill="none" stroke="#111" stroke-width="2"/>`;
+  const pos = [[55, 65], [95, 60], [135, 70], [180, 62], [70, 100], [115, 105], [160, 98], [200, 108], [55, 140], [100, 148], [145, 140], [190, 150], [80, 125], [175, 125]];
+  pos.forEach((a, i) => s += i % 3 === 1 ? SP('sq', a[0], a[1], 8, null) : SP('circ', a[0], a[1], 7));
+  s += `<path d="M235 105 L300 105" stroke="#c62828" stroke-width="3"/><polygon points="300,98 314,105 300,112" fill="#c62828"/>` + TX(232, 90, 'Erhitzen', 'fill="#c62828"') + TX(232, 128, 'ab 100 °C', 'fill="#c62828"');
+  s += TX(330, 24, 'nach dem Eindampfen', 'font-weight="bold"') + `<rect x="330" y="100" width="200" height="70" fill="none" stroke="#111" stroke-width="2"/>`;
+  for (let r = 0; r < 2; r++) for (let c = 0; c < 8; c++) s += SP('sq', 350 + c * 22 + r * 8, 120 + r * 26, 8);
+  [[360, 40], [410, 60], [470, 36], [515, 66], [440, 84]].forEach(a => s += SP('circ', a[0], a[1], 7) + `<path d="M${a[0]} ${a[1] - 10} l0 -10 m-4 4 l4 -4 l4 4" stroke="#666" fill="none"/>`);
+  s += TX(335, 192, 'Salzteilchen bleiben zurück') + TX(335, 210, 'Wasserteilchen: gasförmig');
+  s += SP('circ', 40, 230, 6) + TX(52, 234, 'Wasserteilchen') + SP('sq', 170, 230, 7) + TX(182, 234, 'Salzteilchen') + TX(335, 245, 'Teilchen stark vergrößert', 'font-size="11" fill="#666"');
+  return s + '</svg>';
+};
+SKETCH.destill = () => {
+  let s = `<svg viewBox="0 0 600 290" width="600"><rect width="560" height="290" fill="#fff"/>`;
+  s += `<circle cx="90" cy="185" r="50" fill="#e8f3fb" stroke="#111" stroke-width="2.5"/><rect x="78" y="95" width="24" height="42" fill="#fff" stroke="#111" stroke-width="2.5"/><rect x="82" y="30" width="16" height="85" fill="#fff" stroke="#111" stroke-width="2"/><rect x="84" y="74" width="12" height="41" fill="#c62828"/>`;
+  s += `<path d="M75 238 L90 215 L105 238 Z" fill="#ff9800"/><rect x="82" y="238" width="16" height="22" fill="#555"/><rect x="66" y="260" width="48" height="6" fill="#666"/>`;
+  s += `<g transform="translate(110 110) rotate(20.5)"><rect x="0" y="-17" width="262" height="34" fill="#d6ecfa" stroke="#111" stroke-width="2"/><rect x="0" y="-4" width="285" height="8" fill="#fff" stroke="#111" stroke-width="1.5"/></g>`;
+  s += `<path d="M385 235 L385 275 L455 275 L455 235" fill="none" stroke="#111" stroke-width="2.5"/><rect x="386" y="255" width="68" height="19" fill="#e8f3fb"/>`;
+  s += `<path d="M345 205 L330 188" stroke="#2E75B6" stroke-width="3"/><polygon points="330,188 338,190 332,197" fill="#2E75B6"/><path d="M150 110 L140 96" stroke="#2E75B6" stroke-width="3"/>`;
+  s += TX(112, 40, 'Thermometer') + LN(100, 45, 110, 38) + TX(5, 185, 'Destillier-', 'font-size="12"') + TX(5, 199, 'kolben', 'font-size="12"') + TX(115, 270, 'Gasbrenner') + TX(215, 215, 'Liebigkühler') + LN(250, 205, 255, 165) + TX(352, 225, 'Kühlwasser (rein)') + TX(175, 92, 'Kühlwasser (raus)') + TX(465, 255, 'Vorlage') + TX(465, 270, 'mit Destillat', 'font-weight="bold"');
+  return s + '</svg>';
+};
+
+// ================= Levels =================
+const LEVELS = [
+  { id: 1, icon: '🔍', short: 'Sieben', title: 'Auslesen & Sieben', prop: 'Korngröße', badge: 'Siebmeister/in',
+    intro: `<p>Die einfachste Form des Trennens ist das <b>Auslesen</b>: Man sortiert die Bestandteile des Gemisches von Hand heraus.</p>
+    <p>Beim <b>Sieben</b> trennt man ein Gemisch mit Hilfe von Sieben mit unterschiedlicher Maschenweite nach der <b>Korngröße</b>, z. B. feinen Sand von grobem Kies. Es gibt auch Siebe mit <b>mikroskopisch kleinen Poren</b> (griech. <i>poros</i>: Durchgang, Öffnung). Durch sie gelangen nur Teilchen bis zu einer bestimmten Größe – so lassen sich z. B. Gasgemische oder Lösungen trennen.</p>`,
+    foto: { src: 'images/sieb.jpg', cap: 'Sieben nach Korngröße' },
+    lab: 'sieb', labIntro: 'Du hast ein Gemisch aus grobem Kies und feinem Sand. Welches Sieb trennt die beiden? Probiere alle drei aus.',
+    tasks: [
+      { t: 'lab', q: 'Experiment: Trenne Kies und Sand mit dem passenden Sieb.', ex: 'Sieb B hat genau die richtige Maschenweite.' },
+      { t: 'mc', q: 'Welche Eigenschaft der Bestandteile nutzt das Sieben?', o: ['Korngröße (Teilchengröße)', 'Dichte', 'Siedetemperatur', 'Löslichkeit'], a: 0, hint: 'Denke an die Lücken im Sieb: Was entscheidet, ob etwas hindurchpasst?', ex: 'Das Sieb unterscheidet nach der Größe.' },
+      { t: 'mc', q: 'Ein Sieb hat mikroskopisch kleine Poren. Welches Gemisch könnte man damit trennen?', o: ['Ein Gemisch aus kleinen und größeren Teilchen (z. B. Gasteilchen unterschiedlicher Größe)', 'Sand und Kies', 'Zwei Flüssigkeiten mit verschiedener Siedetemperatur', 'Eisen und Kupfer'], a: 0, hint: 'Mikroskopisch kleine Poren sind nur für sehr kleine Teilchen durchlässig.', ex: 'Nur Teilchen unterhalb der Porengröße gelangen hindurch.' },
+    ],
+    heft: [{ v: 'Sieben', e: 'genutzte Eigenschaft: Korngröße', p: 'Gemisch auf ein Sieb mit passender Maschenweite geben und rütteln. Kleine Körner fallen hindurch, große bleiben im Sieb. <small>(Auslesen: von Hand heraussuchen.)</small>', b: 'Sand und Kies' }] },
+
+  { id: 2, icon: '⏳', short: 'Absetzen', title: 'Sedimentieren & Dekantieren', prop: 'Dichte', badge: 'Absetz-Experte/in',
+    intro: `<p>Eine <b>Aufschlämmung</b> aus Kreidepulver und Wasser oder trübes Lehmwasser klärt sich mit der Zeit von selbst. Kreide und Lehm setzen sich langsam am Boden ab, weil ihre <b>Dichte</b> größer ist als die des Wassers. Dieser Vorgang heißt <b>Sedimentieren</b>. Den Stoff, der sich am Boden sammelt, nennt man <b>Bodensatz</b> oder <b>Sediment</b>.</p>
+    <p>Das klare Wasser über dem Bodensatz kann man vorsichtig abgießen, während der Bodensatz im Gefäß bleibt. Das Trennen von festen und flüssigen Stoffen durch Abgießen heißt <b>Dekantieren</b> (franz. <i>décanter</i>: abgießen). Beide Verfahren trennen die Stoffe aber meist nur <b>grob</b>.</p>
+    <p>Auch das <b>Goldwaschen</b> nutzt die unterschiedliche Dichte: Gold sammelt sich wegen seiner großen Dichte am Boden der Pfanne.</p>`,
+    foto: { src: 'images/goldwaschen.jpg', cap: 'Goldwaschen: Gold sinkt wegen seiner großen Dichte' },
+    lab: 'sed', labIntro: 'Setze den Feststoff ab und gieße das klare Wasser vorsichtig in das zweite Becherglas. Schaffst du es ohne Bodensatz?',
+    tasks: [
+      { t: 'lab', q: 'Experiment: Dekantiere die Aufschlämmung, ohne den Bodensatz mitzugießen.', ex: 'Erst warten, dann vorsichtig abgießen.' },
+      { t: 'mc', q: 'Warum setzt sich Kreide in Wasser am Boden ab?', o: ['Kreide hat eine größere Dichte als Wasser.', 'Kreide hat eine kleinere Dichte als Wasser.', 'Kreide löst sich im Wasser.', 'Kreide siedet bei höherer Temperatur.'], a: 0, hint: 'Was sinkt in Wasser – Stoffe mit größerer oder kleinerer Dichte?', ex: 'Stoffe mit größerer Dichte als Wasser sinken.' },
+      { t: 'mc', q: 'Warum ist Dekantieren nur eine grobe Trennung?', o: ['Über dem Bodensatz bleibt meist etwas Flüssigkeit, oder die Flüssigkeit ist nicht ganz frei von Sediment.', 'Weil Dekantieren sehr lange dauert.', 'Weil sich die Stoffe dabei verändern.', 'Weil die Flüssigkeit verdampft.'], a: 0, hint: 'Denke an dein Experiment: War das Wasser über dem Bodensatz komplett abzugießen?', ex: 'Genau – für eine bessere Trennung nutzt man das Filtrieren (nächstes Level).' },
+    ],
+    heft: [
+      { v: 'Sedimentieren', e: 'genutzte Eigenschaft: Dichte', p: 'Feststoffe mit größerer Dichte als die Flüssigkeit setzen sich am Boden ab: Bodensatz (Sediment).', b: 'Kreide in Wasser, trübes Lehmwasser, Goldwaschen' },
+      { v: 'Dekantieren', e: 'genutzte Eigenschaft: Dichte', p: 'Nach dem Absetzen wird die klare Flüssigkeit vorsichtig abgegossen. Es ist nur eine grobe Trennung (Rest bleibt über dem Bodensatz).', b: 'klares Wasser vom Lehm abgießen' }] },
+
+  { id: 3, icon: '🧪', short: 'Filtrieren', title: 'Filtrieren', prop: 'Teilchengröße', badge: 'Filter-Profi',
+    intro: `<p>Beim Dekantieren bleibt meist etwas Flüssigkeit übrig oder die Flüssigkeit ist nicht frei von Sediment. Das <b>Filtrieren</b> ermöglicht eine bessere Trennung fester, <b>unlöslicher</b> Stoffe von Flüssigkeiten.</p>
+    <p>Das Stoffgemisch wird auf einen <b>Filter</b> gegeben, der feine Poren hat. Die Flüssigkeit läuft durch die Poren ab, der feste Stoff wird aufgrund seiner <b>Partikelgröße</b> zurückgehalten. Er heißt <b>Filterrückstand</b>. Die durchgelaufene Flüssigkeit nennt man <b>Filtrat</b>.</p>
+    <p>Das Filtrat besteht aus sehr <b>kleinen Teilchen</b> und fließt ungehindert durch die Poren. Der Filterrückstand besteht aus größeren Teilchen oder aus dem Zusammenschluss vieler kleinster Teilchen. Sie gelangen nicht durch die Poren.</p>`,
+    foto: { src: 'images/filtrieren.jpg', cap: 'Filtrieren mit Trichter und Filterpapier' },
+    lab: 'filter', labIntro: 'Filtriere beide Gemische und beobachte genau, was auf der Teilchenebene passiert.',
+    tasks: [
+      { t: 'lab', q: 'Experiment: Filtriere das Sand-Wasser-Gemisch und das Salzwasser.', ex: 'Du hast beide Gemische getestet.' },
+      { t: 'cloze', q: 'Ergänze den Text.', parts: ['Der feste Stoff bleibt als ', { o: ['Filterrückstand', 'Filtrat', 'Destillat'], a: 0 }, ' im Filter. Die durchgelaufene Flüssigkeit heißt ', { o: ['Filtrat', 'Filterrückstand', 'Sediment'], a: 0 }, '.'], hint: 'Rückstand = bleibt zurück; Filtrat = läuft durch.', ex: 'So heißen die beiden Bestandteile nach dem Filtrieren.' },
+      { t: 'mc', q: 'Kann man Kochsalz durch Filtrieren aus Salzwasser abtrennen? Begründe.', o: ['Nein – die gelösten Salzteilchen sind einzeln verteilt und kleiner als die Poren; sie laufen mit durch.', 'Ja – Salz bleibt immer im Filter.', 'Ja – wenn man mehrere Filter nacheinander benutzt.', 'Nein – Salz ist zu schwer für den Filter.'], a: 0, hint: 'Schau dir im Experiment an, was mit den Salzteilchen passiert ist.', ex: 'Gelöste Stoffe passieren den Filter – hier braucht man ein anderes Verfahren (nächstes Level).' },
+      { t: 'order', q: 'Bringe die Arbeitsschritte beim Filtrieren in die richtige Reihenfolge.', items: ['Filter falten und in den Trichter legen', 'Gemisch vorsichtig auf den Filter gießen', 'Filtrat im Becherglas auffangen', 'Filterrückstand entnehmen und trocknen'], hint: 'Erst Filter vorbereiten, dann gießen, am Ende den Rückstand verarbeiten.', ex: 'So filtriert man sauber.' },
+    ],
+    heft: [{ v: 'Filtrieren', e: 'genutzte Eigenschaft: Teilchengröße', p: 'Das Gemisch wird durch einen Filter mit feinen Poren gegossen. Kleine Teilchen laufen hindurch (Filtrat). Größere Teilchen bleiben als Filterrückstand im Filter.', b: 'Sand aus Wasser abtrennen' }],
+    sketches: [{ id: 'filter', cap: 'Skizze für dein Heft: Beschrifte Gemisch, Filterpapier, Filterrückstand, Filtrat. Zeichne die Teilchenebene mit Legende (Sandteilchen als Sechsecke, Wasserteilchen als Kreise).' }],
+    sketchesNote: ' (mit Skizze)' },
+
+  { id: 4, icon: '🧂', short: 'Eindampfen', title: 'Verdunsten & Eindampfen', prop: 'Siedetemperatur', badge: 'Salz-Gewinner/in',
+    intro: `<p>In einem Liter Meerwasser sind etwa <b>35 g Salz</b> enthalten. Um die gelösten festen Stoffe zu gewinnen, lässt man das Meerwasser in einem offenen Gefäß <b>verdunsten</b>. Der feste Stoff bleibt zurück und scheidet sich in Form von <b>Kristallen</b> ab. Auch andere feste Stoffe kann man so aus Lösungen gewinnen.</p>
+    <p>Das Verdunsten kann durch Erhitzen bis zum Sieden beschleunigt werden: Das ist das <b>Eindampfen</b>. Dabei verdampft zuerst das <b>Lösungsmittel</b>, da es eine <b>niedrigere Siedetemperatur</b> als der gelöste Stoff hat.</p>
+    <div class="key">Auf Teilchenebene: Beim Erhitzen einer Kochsalzlösung werden bei 100 °C die Anziehungskräfte zwischen den Wasserteilchen überwunden. Die Kochsalzteilchen bleiben im Gefäß zurück, da Kochsalz erst bei 1465 °C siedet.</div>`,
+    foto: { src: 'images/salzgarten.jpg', cap: 'Salzgarten: Meerwasser verdunstet, Salz bleibt zurück' },
+    lab: 'eindampf', labIntro: 'Erhitze die Salzlösung in der Abdampfschale. Beobachte die Wasser- und die Salzteilchen.',
+    tasks: [
+      { t: 'lab', q: 'Experiment: Dampfe die Salzlösung vollständig ein.', ex: 'Das Salz bleibt als Kristall zurück.' },
+      { t: 'mc', q: 'Welche Eigenschaft nutzt das Eindampfen?', o: ['Unterschiedliche Siedetemperaturen von Lösungsmittel und gelöstem Stoff', 'Unterschiedliche Korngröße', 'Unterschiedliche Dichte', 'Unterschiedliche Farbe'], a: 0, hint: 'Welcher Stoff verdampft beim Erhitzen zuerst?', ex: 'Wasser siedet bei 100 °C, Kochsalz erst bei 1465 °C.' },
+      { t: 'cloze', q: 'Beschreibe den Vorgang auf Teilchenebene.', parts: ['Bei 100 °C überwinden die ', { o: ['Wasserteilchen', 'Kochsalzteilchen'], a: 0 }, ' die Anziehungskräfte und werden gasförmig. Die ', { o: ['Kochsalzteilchen', 'Wasserteilchen'], a: 0 }, ' bleiben zurück, denn Kochsalz siedet erst bei ', { o: ['1465 °C', '78 °C', '0 °C'], a: 0 }, '.'], hint: 'Vergleiche die Siedetemperaturen im Experiment.', ex: 'Genau so läuft es im Experiment ab.' },
+      { t: 'mc', q: 'Du möchtest wissen, wie viel Salz in einer Salzlösung steckt. Welches Verfahren wählst du?', o: ['Eindampfen', 'Sieben', 'Filtrieren', 'Dekantieren'], a: 0, hint: 'Gelöste Stoffe lassen sich nicht abfiltrieren.', ex: 'Beim Eindampfen bleibt der gelöste Feststoff zurück und kann gewogen werden.' },
+    ],
+    heft: [{ v: 'Verdunsten / Eindampfen', e: 'genutzte Eigenschaft: Siedetemperatur', p: 'Die Lösung wird erhitzt. Das Lösungsmittel (Wasser, 100 °C) verdampft, der gelöste Feststoff (Kochsalz, 1465 °C) bleibt als Kristall zurück.', b: 'Salz aus Meerwasser (Salzgarten)' }],
+    sketches: [{ id: 'eindampf', cap: 'Skizze für dein Heft: Teilchenebene vorher/nachher mit Legende. Wichtig: Jeder Stoff hat sein eigenes Symbol, alle Teilchen eines Stoffes sind gleich.' }],
+    sketchesNote: ' (mit Skizze)' },
+
+  { id: 5, icon: '⚗️', short: 'Destillieren', title: 'Destillieren', prop: 'Siedetemperaturen', badge: 'Destillations-Profi',
+    intro: `<p>Beim Eindampfen geht das Lösungsmittel verloren. Wie gewinnt man auch das <b>Lösungsmittel</b> zurück? Mit dem <b>Destillieren</b> (lat. <i>destillare</i>: herabträufeln).</p>
+    <p>Das Gemisch wird erhitzt, bis die niedrigste Siedetemperatur eines Stoffes erreicht ist, z. B. die des Wassers. Das Wasser <b>verdampft</b>, die gelösten festen Stoffe bleiben zurück. Der Wasserdampf wird abgekühlt und <b>kondensiert</b>. Das entstehende Wasser heißt <b>Destillat</b> und wird in der <b>Vorlage</b> gesammelt. Wasser, das so gewonnen wurde, nennt man <b>destilliertes Wasser</b>.</p>
+    <p>Bei einem Gemisch zweier Flüssigkeiten bewegen sich die Teilchen der <b>leichter flüchtigen</b> Substanz (niedrigere Siedetemperatur) schneller, überwinden die Anziehungskräfte und entweichen zuerst. Die Teilchen des Stoffes mit der höheren Siedetemperatur bleiben im Kolben. Je weiter die Siedetemperaturen auseinanderliegen, desto vollständiger gelingt die Trennung.</p>
+    <p>Im Labor kühlt man mit dem <b>Liebigkühler</b>: Der heiße Dampf strömt durch das Kondensationsrohr, außen fließt kaltes Wasser in <b>entgegengesetzter Richtung</b> vorbei (<b>Gegenstromprinzip</b>). So wird der Dampf besonders gut abgekühlt.</p>`,
+    foto: { src: 'images/destillation.jpg', cap: 'Destillationsapparatur im Labor' },
+    lab: 'destill', labIntro: 'Gewinne reines Ethanol aus dem Wasser-Ethanol-Gemisch. Wähle die Temperatur klug!',
+    tasks: [
+      { t: 'lab', q: 'Experiment: Gewinne reines Ethanol als Destillat (ohne Wasser).', ex: 'Du hast die Temperatur zwischen die beiden Siedetemperaturen gelegt.' },
+      { t: 'match', q: 'Beschrifte die Destillationsapparatur. Ordne die Zahlen aus dem Bild den Bauteilen zu.', pairs: [['① (oben im Kolben)', 'Thermometer'], ['② (Rundkolben)', 'Destillierkolben'], ['③ (unter dem Kolben)', 'Gasbrenner'], ['④ (schräges Rohr mit Mantel)', 'Liebigkühler'], ['⑤ (blauer Pfeil unten)', 'Kühlwasser (Eingang)'], ['⑥ (rechts unten)', 'Vorlage']], hint: 'Schau dir die Zeichnung genau an – das Kühlwasser fließt entgegen dem Dampf.', ex: 'Die Apparatur hast du jetzt sicher drauf.' },
+      { t: 'mc', q: 'Wann gelingt eine Destillation gut?', o: ['Wenn die Siedetemperaturen der Stoffe weit auseinanderliegen.', 'Wenn die Stoffe gleich schwer sind.', 'Wenn beide Stoffe fest sind.', 'Wenn man sehr stark erhitzt.'], a: 0, hint: 'Denke an dein Experiment: Warum durften die Wasserteilchen noch nicht verdampfen?', ex: 'Je größer der Unterschied, desto vollständiger die Trennung.' },
+      { t: 'cloze', q: 'Erkläre auf Teilchenebene, warum zuerst Ethanol im Destillat erscheint.', parts: ['Die Ethanolteilchen haben die ', { o: ['niedrigere', 'höhere'], a: 0 }, ' Siedetemperatur. Sie überwinden die ', { o: ['Anziehungskräfte', 'Dichten'], a: 0 }, ' früher und werden zuerst ', { o: ['gasförmig', 'fest'], a: 0 }, '. Im Kühler ', { o: ['kondensieren', 'sublimieren'], a: 0 }, ' sie wieder.'], hint: 'Ethanol siedet bei 78 °C, Wasser bei 100 °C.', ex: 'Genau das hast du im Experiment gesehen.' },
+      { t: 'mc', q: 'Warum fließt das Kühlwasser im Liebigkühler dem Dampf entgegen (Gegenstromprinzip)?', o: ['Der Dampf wird dadurch besonders gut abgekühlt und kondensiert vollständiger.', 'Damit das Kühlwasser schneller fließt.', 'Damit der Dampf erhitzt wird.', 'Das ist nur Gewohnheit.'], a: 0, hint: 'Wo ist das Kühlwasser am kältesten, und wo ist der Dampf am heißesten?', ex: 'Das kälteste Wasser trifft auf den schon abgekühlten Dampf am Ende.' },
+    ],
+    heft: [{ v: 'Destillieren', e: 'genutzte Eigenschaft: unterschiedliche Siedetemperaturen', p: 'Das Gemisch wird erhitzt. Der Stoff mit der niedrigeren Siedetemperatur verdampft zuerst. Der Dampf kondensiert im Kühler (Gegenstromprinzip) und wird als Destillat in der Vorlage gesammelt.', b: 'destilliertes Wasser aus Salzwasser' }],
+    sketches: [{ id: 'destill', cap: 'Skizze für dein Heft: Destillationsapparatur beschriften (Thermometer, Destillierkolben, Gasbrenner, Liebigkühler, Kühlwasser rein/raus, Vorlage mit Destillat).' }],
+    sketchesNote: ' (mit Skizze)' },
+
+  { id: 6, icon: '🏆', short: 'Mission', title: 'Mission: Trennungsgang', prop: '', badge: 'Trenn-Meister/in',
+    intro: `<p>Jetzt wird es ernst: Oft muss man <b>mehrere Verfahren nacheinander</b> anwenden. Die Regel: Zuerst die Verfahren, die <b>grobe Unterschiede</b> nutzen (Sieben, Sedimentieren, Filtrieren), zuletzt <b>Eindampfen</b> oder <b>Destillieren</b>.</p>
+    <p>Beim Trennen verändern sich die Stoffteilchen selbst <b>nicht</b> – sie werden nur voneinander getrennt.</p>`,
+    tasks: [
+      { t: 'order', q: 'Mission 1: Ein Gemisch aus Sand, Kochsalz und Wasser. Du möchtest Sand und Salz gewinnen. Ordne die Schritte.', items: ['Das Gemisch filtrieren: Sand bleibt als Filterrückstand im Filter', 'Das Filtrat (Salzwasser) in einer Abdampfschale eindampfen', 'Kochsalz bleibt als Kristall zurück'], hint: 'Erst das Verfahren für die großen Teilchen, dann das für die gelösten.', ex: 'So gewinnst du beide Stoffe.' },
+      { t: 'match', q: 'Mission 2: Wähle für jede Probe das passende Verfahren.', pairs: [['Kies und Sand trennen', 'Sieben'], ['Trübes Lehmwasser klären (Feststoff setzt sich ab)', 'Sedimentieren und Dekantieren'], ['Sand vollständig aus Wasser abtrennen', 'Filtrieren'], ['Salz aus Meerwasser gewinnen', 'Eindampfen'], ['Reines Wasser aus Salzwasser gewinnen', 'Destillieren']], hint: 'Überlege, welche Eigenschaft sich bei den Bestandteilen unterscheidet.', ex: 'Alle Proben zugeordnet!' },
+      { t: 'mc', q: 'Mission 3: Warum kann man ein Gemisch aus zwei Flüssigkeiten mit verschiedener Siedetemperatur durch Destillieren trennen?', o: ['Die Teilchen des Stoffes mit der niedrigeren Siedetemperatur überwinden die Anziehungskräfte zuerst und verdampfen zuerst.', 'Die Teilchen verändern sich beim Erhitzen in andere Stoffe.', 'Alle Teilchen verdampfen gleichzeitig, wenn man lange genug erhitzt.', 'Die schwereren Teilchen sinken zu Boden.'], a: 0, hint: 'Denke an dein Experiment mit Wasser und Ethanol.', ex: 'Das ist das Prinzip der Destillation.' },
+      { t: 'mc', q: 'Mission 4: Was passiert beim Trennen von Stoffgemischen mit den Stoffteilchen?', o: ['Sie bleiben unverändert und werden nur voneinander getrennt.', 'Sie verwandeln sich in andere Teilchen.', 'Sie werden kleiner.', 'Sie verschwinden.'], a: 0, hint: 'Trennverfahren verändern die Stoffe nicht.', ex: 'Das Teilchenmodell erklärt alle Trennverfahren.' },
+    ],
+    heft: [{ v: 'Trennungsgang', e: 'mehrere Verfahren nacheinander', p: 'Zuerst Verfahren, die grobe Unterschiede nutzen (Sieben, Filtrieren), zuletzt Eindampfen oder Destillieren. Beispiel Sand + Salz + Wasser: ① Filtrieren (Sand bleibt zurück), ② Filtrat eindampfen (Salz bleibt zurück).', b: 'Sand, Salz und Wasser trennen' }] },
+
+  { id: 7, icon: '⭐', short: 'Bonus', title: 'Bonus: Spezialverfahren', prop: '', badge: 'Profi-Chemiker/in',
+    intro: `<p><b>Adsorbieren:</b> Mit <b>Aktivkohle</b> lassen sich Geruchsstoffe, Farbstoffe oder Gifte entfernen. Sie lagern sich durch <b>Adsorption</b> (lat. <i>adsorbere</i>: anlagern) an der Oberfläche der Kohle an. Aktivkohle ist besonders hergestellte Holzkohle mit sehr großer Oberfläche: 5 g Aktivkohle haben eine Oberfläche so groß wie ein Fußballfeld! Verwendet wird sie z. B. in der Trinkwasseraufbereitung, in Dunstabzugshauben und Atemschutzmasken.</p>
+    <p><b>Extrahieren:</b> Beim Aufbrühen von Tee lösen sich verschiedene Stoffe aus den Teeblättern heraus – sie werden <b>extrahiert</b> (lat. <i>extrahere</i>: herausziehen). Genutzt wird die unterschiedliche <b>Löslichkeit</b> der Reinstoffe im Gemisch. Auch Duftstoffe aus Orangenschalen lassen sich so mit Wasser herauslösen.</p>
+    <p><b>Zentrifugieren:</b> In der Honigschleuder werden Honig und Bienenwachs durch Schleudern getrennt. Zentrifugen nutzen die unterschiedliche <b>Dichte</b> der Stoffe: So trennt man auch Milch in Milchfett und wässrige Molke. Zentrifugieren beschleunigt auch das Sedimentieren.</p>`,
+    foto: { src: 'images/honigschleuder.jpg', cap: 'Honigschleuder' },
+    lab: 'spezial', labIntro: 'Sieh dir die drei Verfahren an – die Animationen laufen von selbst.',
+    tasks: [
+      { t: 'match', q: 'Ordne jedem Verfahren die genutzte Eigenschaft zu.', pairs: [['Adsorbieren', 'Anlagern an der Oberfläche eines Stoffes'], ['Extrahieren', 'unterschiedliche Löslichkeit'], ['Zentrifugieren', 'unterschiedliche Dichte (durch Schleudern)']], hint: 'Lies noch einmal die Texte oben.', ex: 'Alle drei zugeordnet.' },
+      { t: 'match', q: 'Welches Verfahren steckt dahinter?', pairs: [['Tee aufbrühen', 'Extrahieren'], ['Honigschleuder', 'Zentrifugieren'], ['Atemschutzmaske mit Aktivkohle', 'Adsorbieren']], hint: 'Welche Eigenschaft wird jeweils genutzt?', ex: 'Alltag und Chemie passen zusammen.' },
+      { t: 'mc', q: 'Warum ist Aktivkohle so wirksam?', o: ['Sie hat eine sehr große Oberfläche, an der sich viele Teilchen anlagern können.', 'Sie ist besonders schwer.', 'Sie löst sich im Wasser.', 'Sie hat eine niedrige Siedetemperatur.'], a: 0, hint: '5 g Aktivkohle ≈ ein Fußballfeld …', ex: 'Große Oberfläche = viel Platz zum Anlagern.' },
+    ],
+    heft: [
+      { v: 'Adsorbieren', e: 'genutzte Eigenschaft: Anlagerung an Oberflächen', p: 'Geruchs-, Farb- oder Giftstoffe lagern sich an der sehr großen Oberfläche der Aktivkohle an.', b: 'Trinkwasseraufbereitung, Atemschutzmaske' },
+      { v: 'Extrahieren', e: 'genutzte Eigenschaft: Löslichkeit', p: 'Ein Lösungsmittel (z. B. heißes Wasser) löst bestimmte Stoffe aus einem Gemisch heraus.', b: 'Tee aufbrühen' },
+      { v: 'Zentrifugieren', e: 'genutzte Eigenschaft: Dichte', p: 'Durch Schleudern werden Stoffe mit unterschiedlicher Dichte getrennt (beschleunigtes Sedimentieren).', b: 'Honigschleuder, Milch → Fett + Molke' }] },
+];
+
+// ================= Start =================
+$('#reset').onclick = () => { if (confirm('Fortschritt wirklich zurücksetzen?')) { S = { started: false, lv: {}, tk: {}, xp: 0 }; save(); updateXP(); show('start'); } };
+updateXP();
+(function () {
+  if (!S.started) return show('start');
+  const next = LEVELS.find(l => !(S.lv[l.id] && S.lv[l.id].done));
+  show(next ? next.id : 'heft');
+})();
+if (TEACHER) $('#ver').textContent = 'Lehrkraft-Modus: alle Level freigeschaltet';
+</script></body></html>
